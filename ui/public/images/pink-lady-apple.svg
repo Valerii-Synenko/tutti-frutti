@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Pink Lady apple">
+  <rect width="400" height="400" fill="#fdf6ee"/>
+  <path d="M200 122c40-24 98-16 118 27 22 47 4 130-41 179-20 22-45 30-77 30s-57-8-77-30c-45-49-63-132-41-179 20-43 78-51 118-27z" fill="#e23b52"/>
+  <path d="M200 122c-40-24-98-16-118 27-22 47-4 130 41 179 16 18 35 27 57 30-31-14-53-53-61-106-6-43 8-90 45-110 12-7 24-13 36-16z" fill="#f2647a" opacity=".65"/>
+  <path d="M196 122c2-31 22-55 55-61-4 31-22 53-55 61z" fill="#5f9a3f"/>
+  <rect x="196" y="88" width="8" height="42" rx="4" fill="#7a5230"/>
+  <ellipse cx="150" cy="182" rx="27" ry="17" fill="#fff" opacity=".3"/>
+</svg>

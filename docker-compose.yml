@@ -1,0 +1,129 @@
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------- Databases
+  users-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tuttifrutti
+      POSTGRES_PASSWORD: tuttifrutti
+      POSTGRES_DB: users
+    volumes:
+      - users-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tuttifrutti -d users"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  orders-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tuttifrutti
+      POSTGRES_PASSWORD: tuttifrutti
+      POSTGRES_DB: orders
+    volumes:
+      - orders-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tuttifrutti -d orders"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  catalogue-db:
+    image: mongo:7
+    volumes:
+      - catalogue-db-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------- Services
+  users-service:
+    build: ./services/users-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://tuttifrutti:tuttifrutti@users-db:5432/users
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-only-secret-change-me}
+    depends_on:
+      users-db:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+
+  catalogue-service:
+    build: ./services/catalogue-service
+    environment:
+      MONGO_URI: mongodb://catalogue-db:27017
+      MONGO_DB_NAME: catalogue
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-only-secret-change-me}
+    depends_on:
+      catalogue-db:
+        condition: service_healthy
+    ports:
+      - "8002:8000"
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory-service/Dockerfile
+    ports:
+      - "50051:50051"
+
+  orders-service:
+    build: ./services/orders-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://tuttifrutti:tuttifrutti@orders-db:5432/orders
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-only-secret-change-me}
+      INVENTORY_GRPC_TARGET: inventory-service:50051
+    depends_on:
+      orders-db:
+        condition: service_healthy
+      inventory-service:
+        condition: service_started
+    ports:
+      - "8003:8000"
+
+  fruit-assistant-service:
+    build: ./services/fruit-assistant-service
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CATALOGUE_SERVICE_URL: http://catalogue-service:8000
+    depends_on:
+      - catalogue-service
+    ports:
+      - "8004:8000"
+
+  gateway:
+    build: ./services/gateway
+    environment:
+      USERS_SERVICE_URL: http://users-service:8000
+      CATALOGUE_SERVICE_URL: http://catalogue-service:8000
+      ORDERS_SERVICE_URL: http://orders-service:8000
+      ASSISTANT_SERVICE_URL: http://fruit-assistant-service:8000
+      INVENTORY_GRPC_TARGET: inventory-service:50051
+      CORS_ORIGINS: "http://localhost:3001,http://localhost:4173,http://localhost:5173"
+    depends_on:
+      - users-service
+      - catalogue-service
+      - orders-service
+      - fruit-assistant-service
+      - inventory-service
+    ports:
+      - "8080:8000"
+
+  ui:
+    build:
+      context: ./ui
+      args:
+        VITE_GATEWAY_URL: http://localhost:8080
+    depends_on:
+      - gateway
+    ports:
+      - "4173:80"
+
+volumes:
+  users-db-data:
+  orders-db-data:
+  catalogue-db-data:

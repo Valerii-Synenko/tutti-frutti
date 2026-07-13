@@ -1,0 +1,13 @@
+{
+  "name": "tutti-frutti-docs",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "zudoku dev",
+    "build": "zudoku build",
+    "preview": "zudoku preview"
+  },
+  "dependencies": {
+    "zudoku": "^0.82.2"
+  }
+}

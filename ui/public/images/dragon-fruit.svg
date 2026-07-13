@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Dragon fruit">
+  <rect width="400" height="400" fill="#fdf6ee"/>
+  <ellipse cx="200" cy="210" rx="96" ry="120" fill="#e0457e"/>
+  <ellipse cx="200" cy="210" rx="96" ry="120" fill="#f06ea0" opacity=".5"/>
+  <g fill="#8bc34a" stroke="#5f9a3f" stroke-width="3">
+    <path d="M118 130c-18-14-40-16-58-8 16 16 38 22 58 16z"/>
+    <path d="M282 130c18-14 40-16 58-8-16 16-38 22-58 16z"/>
+    <path d="M104 210c-22-6-42 2-54 18 22 8 44 4 60-8z"/>
+    <path d="M296 210c22-6 42 2 54 18-22 8-44 4-60-8z"/>
+    <path d="M132 300c-16 14-22 34-16 52 18-12 30-32 30-52z"/>
+    <path d="M268 300c16 14 22 34 16 52-18-12-30-32-30-52z"/>
+  </g>
+  <ellipse cx="200" cy="210" rx="60" ry="82" fill="#fdf3f6"/>
+  <g fill="#2b2b2b">
+    <circle cx="182" cy="168" r="4"/><circle cx="214" cy="176" r="4"/>
+    <circle cx="176" cy="204" r="4"/><circle cx="206" cy="210" r="4"/>
+    <circle cx="222" cy="230" r="4"/><circle cx="184" cy="240" r="4"/>
+    <circle cx="200" cy="266" r="4"/><circle cx="164" cy="228" r="4"/>
+    <circle cx="216" cy="196" r="4"/><circle cx="194" cy="192" r="4"/>
+  </g>
+</svg>

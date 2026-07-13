@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Cavendish banana">
+  <rect width="400" height="400" fill="#fdf6ee"/>
+  <path d="M96 120c8 78 44 150 128 168 40 9 76 2 96-14 8-6 6-18-4-20-70-14-108-58-128-130-4-16-10-30-22-36-16-8-38 4-46 22-2 6-4 12-24 10z" fill="#f4c22b"/>
+  <path d="M110 128c10 70 44 134 118 152 30 7 58 4 78-6-22 6-48 6-74-0-72-16-106-80-116-148-2 2-4 2-6 2z" fill="#e0a91e" opacity=".6"/>
+  <path d="M96 120c-2-14 6-24 16-24 6 12 4 22-2 30-6-2-11-4-14-6z" fill="#5f7a2f"/>
+  <path d="M312 254c10 2 14 8 12 16-12 2-20-2-24-10 4-4 8-6 12-6z" fill="#6b4a2a"/>
+  <path d="M150 150c14 54 46 104 108 128" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".3"/>
+</svg>

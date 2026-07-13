@@ -1,0 +1,61 @@
+---
+title: Tutti Frutti — API Reference
+description: Aggregated API documentation for the Tutti Frutti microservices demo.
+---
+
+# 🍊 Tutti Frutti — API Reference
+
+A lightweight, modern microservices demo — a
+[Sock Shop](https://github.com/microservices-demo/microservices-demo) alternative
+that sells fruit instead of socks. Built as a "guinea pig" project for practising
+backend/API and UI (Playwright) test automation.
+
+This documentation aggregates the OpenAPI contracts from all public services. Pick
+a service from the **APIs** menu above or use the links below.
+
+## Services
+
+| Service | Stack | Role | Docs |
+|---|---|---|---|
+| **Gateway (BFF)** | FastAPI | Single entry point for the UI, aggregates REST + gRPC | [/gateway](/gateway) |
+| **Users** | FastAPI + PostgreSQL | Registration, login, JWT issuance (access + refresh) | [/users](/users) |
+| **Catalogue** | FastAPI + MongoDB | Fruit catalogue — flexible schema for varied per-fruit attributes | [/catalogue](/catalogue) |
+| **Orders** | FastAPI + PostgreSQL | Cart/orders; calls inventory over gRPC | [/orders](/orders) |
+| **Fruit Assistant** | FastAPI + Anthropic API | AI chat assistant with on-topic guardrails | [/assistant](/assistant) |
+
+> `inventory-service` (Go + gRPC) is an **internal** service — it is never called
+> directly from the UI and has no REST/OpenAPI surface. Its contract is defined in
+> `proto/` and can be explored via `grpcurl` (reflection).
+
+## Architecture
+
+```
+Browser (UI) ──► gateway ──┬──► users-service ────► Postgres
+                            ├──► catalogue-service ─► MongoDB
+                            ├──► orders-service ─┬──► Postgres
+                            │                     └──► inventory-service (gRPC)
+                            └──► fruit-assistant-service ──► Anthropic API
+```
+
+## Quick start
+
+```bash
+cp .env.example .env          # fill in JWT_SECRET_KEY and, optionally, ANTHROPIC_API_KEY
+make up                       # docker compose up -d --build
+make seed                     # populates catalogue-service with demo fruit data
+```
+
+- UI: `http://localhost:4173`
+- Gateway (BFF): `http://localhost:8080` (Swagger: `/docs`, ReDoc: `/redoc`)
+- Each service also exposes its own `/docs`/`/redoc` on its own port
+  (users: 8001, catalogue: 8002, orders: 8003, assistant: 8004)
+
+## Updating this documentation
+
+The JSON specs in `docs/openapi/` are generated from the live stack:
+
+```bash
+make up                              # stack must be running
+python scripts/collect_openapi.py    # (re)generates docs/openapi/*.json
+make docs                            # starts the Zudoku dev server
+```

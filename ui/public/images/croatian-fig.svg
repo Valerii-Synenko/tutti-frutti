@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Croatian fig">
+  <rect width="400" height="400" fill="#fdf6ee"/>
+  <path d="M200 118c8-16 26-26 46-24-6 18-22 30-42 32z" fill="#5f9a3f"/>
+  <rect x="196" y="112" width="8" height="34" rx="4" fill="#6b4f2a"/>
+  <path d="M200 140c54 0 96 44 96 104 0 62-44 106-96 106s-96-44-96-106c0-60 42-104 96-104z" fill="#6a4a7a"/>
+  <path d="M200 140c-54 0-96 44-96 104 0 42 20 76 52 93-20-18-32-48-32-85 0-56 34-98 76-108-0 0 0-2 0-4z" fill="#8a6aa0" opacity=".55"/>
+  <ellipse cx="200" cy="252" rx="52" ry="60" fill="#d98aa0"/>
+  <ellipse cx="200" cy="252" rx="52" ry="60" fill="#e8a7b8" opacity=".5"/>
+  <g stroke="#b85f7a" stroke-width="2">
+    <line x1="200" y1="200" x2="200" y2="312"/>
+    <line x1="152" y1="252" x2="248" y2="252"/>
+    <line x1="166" y1="214" x2="234" y2="290"/>
+    <line x1="234" y1="214" x2="166" y2="290"/>
+  </g>
+  <g fill="#a8375a">
+    <circle cx="200" cy="238" r="2.5"/><circle cx="214" cy="252" r="2.5"/>
+    <circle cx="186" cy="252" r="2.5"/><circle cx="200" cy="270" r="2.5"/>
+    <circle cx="222" cy="270" r="2.5"/><circle cx="178" cy="270" r="2.5"/>
+  </g>
+</svg>

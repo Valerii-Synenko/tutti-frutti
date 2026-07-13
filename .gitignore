@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node / UI
+node_modules/
+dist/
+ui/playwright-report/
+ui/test-results/
+
+# Go
+services/inventory-service/internal/proto/*.pb.go
+
+# Docs build output
+docs/dist/
+docs/openapi/*.json
+
+# Env / secrets
+.env
+*.env.local
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

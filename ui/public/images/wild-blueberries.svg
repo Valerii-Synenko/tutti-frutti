@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Wild blueberries">
+  <rect width="400" height="400" fill="#fdf6ee"/>
+  <g>
+    <circle cx="150" cy="180" r="54" fill="#3a5a99"/>
+    <circle cx="150" cy="180" r="54" fill="#5b78b3" opacity=".5"/>
+    <circle cx="258" cy="150" r="48" fill="#33517f"/>
+    <circle cx="258" cy="150" r="48" fill="#5b78b3" opacity=".45"/>
+    <circle cx="212" cy="252" r="58" fill="#2f4a7a"/>
+    <circle cx="212" cy="252" r="58" fill="#5b78b3" opacity=".4"/>
+    <g fill="#1f2f52">
+      <path d="M150 158l-9 9 9 6 9-6z"/>
+      <path d="M258 128l-8 9 8 6 8-6z"/>
+      <path d="M212 228l-10 10 10 7 10-7z"/>
+    </g>
+    <circle cx="132" cy="162" r="12" fill="#fff" opacity=".35"/>
+    <circle cx="242" cy="134" r="10" fill="#fff" opacity=".35"/>
+    <circle cx="192" cy="234" r="13" fill="#fff" opacity=".35"/>
+  </g>
+</svg>

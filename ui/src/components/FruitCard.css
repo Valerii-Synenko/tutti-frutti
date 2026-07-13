@@ -1,0 +1,99 @@
+.fruit-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+
+.fruit-card__media-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.fruit-card__media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(160deg, #FFF3DE, #F3F7EC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fruit-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fruit-card__media-placeholder {
+  font-size: 56px;
+}
+
+/* Signature element: a hand-written-style price tag, slightly rotated like a
+   real market sticker slapped on a crate. */
+.fruit-card__price-tag {
+  position: absolute;
+  top: 12px;
+  right: -6px;
+  background: var(--color-mustard);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 6px 14px 6px 12px;
+  border-radius: 4px 10px 10px 4px;
+  transform: rotate(6deg);
+  box-shadow: 0 3px 6px rgba(43, 27, 23, 0.2);
+}
+
+.fruit-card__organic-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: var(--color-leaf);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.fruit-card__body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.fruit-card__body h3 {
+  font-size: 18px;
+}
+
+.fruit-card__origin {
+  margin: 0;
+  color: var(--color-ink-soft);
+  font-size: 13px;
+}
+
+.fruit-card__footer {
+  margin-top: 12px;
+}
+
+.fruit-card__add-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.fruit-card__out-of-stock {
+  display: inline-block;
+  color: var(--color-watermelon);
+  font-weight: 600;
+  font-size: 13px;
+}

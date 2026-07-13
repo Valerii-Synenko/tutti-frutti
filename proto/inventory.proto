@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package inventory;
+
+option go_package = "tutti-frutti/inventory-service/internal/proto";
+
+// InventoryService is an internal-only gRPC service.
+// It is never exposed directly to the UI; the gateway (or orders-service)
+// talks to it over gRPC to check stock and fetch current pricing.
+service InventoryService {
+  // GetStock returns current stock level and unit price for a single fruit SKU.
+  rpc GetStock(GetStockRequest) returns (StockInfo);
+
+  // BatchGetStock returns stock info for multiple SKUs in one round trip.
+  rpc BatchGetStock(BatchGetStockRequest) returns (BatchStockInfo);
+
+  // ReserveStock decrements stock when an order is placed (best-effort, in-memory demo).
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+
+  // HealthCheck is a trivial RPC used by tests and CI to confirm the service is up.
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message GetStockRequest {
+  string sku = 1;
+}
+
+message BatchGetStockRequest {
+  repeated string skus = 1;
+}
+
+message StockInfo {
+  string sku = 1;
+  int32 quantity_available = 2;
+  double unit_price_eur = 3;
+  bool in_stock = 4;
+}
+
+message BatchStockInfo {
+  repeated StockInfo items = 1;
+}
+
+message ReserveStockRequest {
+  string sku = 1;
+  int32 quantity = 2;
+}
+
+message ReserveStockResponse {
+  bool success = 1;
+  string message = 2;
+  int32 remaining_quantity = 3;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+}

@@ -1,0 +1,105 @@
+:root {
+  /* Color tokens — a "fruit crate market stall" identity, not the generic
+     cream+terracotta or near-black+neon defaults. */
+  --color-bg: #F3F7EC;          /* pale crate-liner green-cream */
+  --color-surface: #FFFFFF;
+  --color-ink: #2B1B17;         /* deep plum-brown, not pure black */
+  --color-ink-soft: #6B5B54;
+  --color-citrus: #FF8C42;      /* primary CTA — orange */
+  --color-citrus-dark: #E06B1F;
+  --color-watermelon: #E8483C;  /* alerts / sale */
+  --color-leaf: #3D8361;        /* success / organic */
+  --color-mustard: #F4B93E;     /* secondary highlight */
+  --color-border: #E4DCC8;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-card: 0 2px 0 var(--color-border), 0 8px 20px -12px rgba(43, 27, 23, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--color-citrus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.btn-primary {
+  background: var(--color-citrus);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 22px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: transform 0.1s ease, background 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: var(--color-citrus-dark);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #CBBFAF;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 2px solid var(--color-ink);
+  color: var(--color-ink);
+  border-radius: var(--radius-md);
+  padding: 10px 20px;
+  font-weight: 600;
+  font-size: 15px;
+}

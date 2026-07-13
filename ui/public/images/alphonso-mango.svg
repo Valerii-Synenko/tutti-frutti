@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Alphonso mango">
+  <rect width="400" height="400" fill="#fdf6ee"/>
+  <path d="M132 150c30-44 96-58 148-30 46 25 60 82 34 132-22 42-70 74-124 74-58 0-96-40-96-92 0-38 14-66 38-84z" fill="#f2a417"/>
+  <path d="M132 150c30-44 96-58 148-30-52-8-104 8-134 52-24 36-24 82 4 112-30-16-48-46-48-84 0-20 12-38 30-50z" fill="#f7c34a" opacity=".7"/>
+  <path d="M250 128c14-14 36-20 58-16-10 20-30 32-58 34z" fill="#d0503a"/>
+  <path d="M247 130c-2-16 6-32 22-42-2 20-10 34-22 42z" fill="#5f9a3f"/>
+  <ellipse cx="168" cy="196" rx="30" ry="20" fill="#fff" opacity=".3"/>
+</svg>
