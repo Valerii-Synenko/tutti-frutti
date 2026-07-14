@@ -6,7 +6,7 @@ from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import User, get_db, init_models
+from app.database import AsyncSessionLocal, User, get_db, init_models
 from app.schemas import AccessToken, RefreshRequest, TokenPair, UserOut, UserRegister
 from app.security import (
     create_access_token,
@@ -17,9 +17,22 @@ from app.security import (
 )
 
 
+async def _seed_admin() -> None:
+    async with AsyncSessionLocal() as db:
+        existing = await db.execute(select(User).where(User.email == "admin@admin.com"))
+        if existing.scalar_one_or_none() is None:
+            db.add(User(
+                email="admin@admin.com",
+                hashed_password=hash_password("admin"),
+                full_name="Admin",
+            ))
+            await db.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_models()
+    await _seed_admin()
     yield
 
 

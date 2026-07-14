@@ -50,3 +50,12 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
 }
+
+export interface Comment {
+  _id: string;
+  fruit_slug: string;
+  author: string;
+  body: string;
+  created_at: string;
+  user_id: string | null;
+}

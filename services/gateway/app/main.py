@@ -49,9 +49,8 @@ def _forward_headers(request: Request) -> dict:
 
 async def _proxy(method: str, url: str, request: Request, **kwargs) -> Response:
     assert _http_client is not None
-    resp = await _http_client.request(
-        method, url, headers=_forward_headers(request), **kwargs
-    )
+    headers = {**_forward_headers(request), **kwargs.pop("headers", {})}
+    resp = await _http_client.request(method, url, headers=headers, **kwargs)
     return Response(content=resp.content, status_code=resp.status_code, media_type="application/json")
 
 
@@ -160,6 +159,25 @@ async def list_orders(request: Request):
 @app.get("/orders/{order_id}", tags=["orders"])
 async def get_order(order_id: str, request: Request):
     return await _proxy("GET", f"{settings.orders_service_url}/orders/{order_id}", request)
+
+
+# ---- Comments (proxied to catalogue-service) --------------------------------
+
+@app.get("/fruits/{slug}/comments", tags=["comments"])
+async def list_comments(slug: str, request: Request):
+    return await _proxy("GET", f"{settings.catalogue_service_url}/fruits/{slug}/comments", request)
+
+
+@app.post("/fruits/{slug}/comments", tags=["comments"])
+async def add_comment(slug: str, request: Request):
+    body = await request.body()
+    return await _proxy("POST", f"{settings.catalogue_service_url}/fruits/{slug}/comments", request,
+                        content=body, headers={"content-type": "application/json"})
+
+
+@app.delete("/fruits/{slug}/comments/{comment_id}", tags=["comments"])
+async def delete_comment(slug: str, comment_id: str, request: Request):
+    return await _proxy("DELETE", f"{settings.catalogue_service_url}/fruits/{slug}/comments/{comment_id}", request)
 
 
 # ---- AI assistant (proxied to fruit-assistant-service) --------------------

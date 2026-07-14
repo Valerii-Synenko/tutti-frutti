@@ -20,10 +20,16 @@ def get_fruits_collection():
     return get_database()["fruits"]
 
 
+def get_comments_collection():
+    return get_database()["comments"]
+
+
 async def ensure_indexes() -> None:
-    collection = get_fruits_collection()
-    # Text index powers free-text search across name/description/origin/tags.
-    await collection.create_index(
+    fruits = get_fruits_collection()
+    await fruits.create_index(
         [("name", "text"), ("description", "text"), ("origin", "text"), ("tags", "text")]
     )
-    await collection.create_index("slug", unique=True)
+    await fruits.create_index("slug", unique=True)
+
+    comments = get_comments_collection()
+    await comments.create_index("fruit_slug")

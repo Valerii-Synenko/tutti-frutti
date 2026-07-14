@@ -1,18 +1,21 @@
 import re
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 
 from app.auth import require_auth
-from app.database import ensure_indexes, get_fruits_collection
-from app.schemas import FruitCreate, FruitOut, FruitUpdate
+from app.database import ensure_indexes, get_comments_collection, get_fruits_collection
+from app.schemas import CommentIn, CommentOut, FruitCreate, FruitOut, FruitUpdate
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await ensure_indexes()
+    from app.seed import main as seed
+    await seed()
     yield
 
 
@@ -71,10 +74,10 @@ async def list_fruits(
     return [doc async for doc in cursor]
 
 
-@app.get("/fruits/{fruit_id}", response_model=FruitOut, tags=["fruits"])
-async def get_fruit(fruit_id: str):
+@app.get("/fruits/{slug}", response_model=FruitOut, tags=["fruits"])
+async def get_fruit(slug: str):
     collection = get_fruits_collection()
-    doc = await collection.find_one({"_id": _to_object_id(fruit_id)})
+    doc = await collection.find_one({"slug": slug})
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fruit not found")
     return doc
@@ -113,3 +116,38 @@ async def delete_fruit(fruit_id: str, _user_id: str = Depends(require_auth)):
     result = await collection.delete_one({"_id": _to_object_id(fruit_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fruit not found")
+
+
+# ---- Comments ---------------------------------------------------------------
+
+@app.get("/fruits/{slug}/comments", response_model=list[CommentOut], tags=["comments"])
+async def list_comments(slug: str):
+    collection = get_comments_collection()
+    cursor = collection.find({"fruit_slug": slug}).sort("created_at", 1)
+    return [doc async for doc in cursor]
+
+
+@app.post("/fruits/{slug}/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED, tags=["comments"])
+async def add_comment(slug: str, payload: CommentIn, _user_id: str = Depends(require_auth)):
+    fruits = get_fruits_collection()
+    if await fruits.find_one({"slug": slug}) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fruit not found")
+
+    doc = {
+        "fruit_slug": slug,
+        "author": payload.author,
+        "body": payload.body,
+        "created_at": datetime.now(timezone.utc),
+        "user_id": _user_id,
+    }
+    collection = get_comments_collection()
+    result = await collection.insert_one(doc)
+    return await collection.find_one({"_id": result.inserted_id})
+
+
+@app.delete("/fruits/{slug}/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["comments"])
+async def delete_comment(slug: str, comment_id: str, _user_id: str = Depends(require_auth)):
+    collection = get_comments_collection()
+    result = await collection.delete_one({"_id": _to_object_id(comment_id), "fruit_slug": slug})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")

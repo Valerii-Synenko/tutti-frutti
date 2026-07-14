@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Any, Optional
 
 from bson import ObjectId
@@ -45,3 +46,19 @@ class FruitOut(FruitBase):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
     id: PyObjectId = Field(alias="_id")
+
+
+class CommentIn(BaseModel):
+    author: str = Field(min_length=1, max_length=80)
+    body: str = Field(min_length=1, max_length=1000)
+
+
+class CommentOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
+
+    id: PyObjectId = Field(alias="_id")
+    fruit_slug: str
+    author: str
+    body: str
+    created_at: datetime
+    user_id: Optional[str] = None
