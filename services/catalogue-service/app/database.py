@@ -30,6 +30,8 @@ async def ensure_indexes() -> None:
         [("name", "text"), ("description", "text"), ("origin", "text"), ("tags", "text")]
     )
     await fruits.create_index("slug", unique=True)
+    await fruits.create_index("status")
+    await fruits.create_index("seller_id")
 
     comments = get_comments_collection()
     await comments.create_index("fruit_slug")

@@ -130,7 +130,8 @@ async def main() -> None:
 
     fruits_col = get_fruits_collection()
     for fruit in FRUITS:
-        await fruits_col.update_one({"slug": fruit["slug"]}, {"$set": fruit}, upsert=True)
+        doc = {**fruit, "seller_id": None, "status": "approved"}
+        await fruits_col.update_one({"slug": fruit["slug"]}, {"$set": doc}, upsert=True)
     print(f"Seeded {len(FRUITS)} fruits.")
 
     comments_col = get_comments_collection()

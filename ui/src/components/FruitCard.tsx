@@ -1,11 +1,25 @@
+import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { Fruit } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
+import { api } from '../api/client';
+import { TrashIcon } from './icons';
 import './FruitCard.css';
 
-export function FruitCard({ fruit }: { fruit: Fruit }) {
+export function FruitCard({ fruit, onDeleted }: { fruit: Fruit; onDeleted?: (slug: string) => void }) {
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const price = fruit.live_price_eur ?? fruit.base_price_hint_eur;
+  const canDelete = user?.is_admin || (!!user && fruit.seller_id === user.id);
+
+  async function handleDelete(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${fruit.name}"? This cannot be undone.`)) return;
+    await api.delete(`/fruits/${fruit._id}`);
+    onDeleted?.(fruit.slug);
+  }
 
   return (
     <article className="fruit-card" data-testid="fruit-card" data-fruit-slug={fruit.slug}>
@@ -21,6 +35,16 @@ export function FruitCard({ fruit }: { fruit: Fruit }) {
           </span>
           {fruit.is_organic && (
             <span className="fruit-card__organic-badge" data-testid="organic-badge">organic</span>
+          )}
+          {canDelete && (
+            <button
+              className="icon-button icon-button--danger fruit-card__delete-btn"
+              onClick={handleDelete}
+              aria-label={`Delete ${fruit.name}`}
+              data-testid="fruit-card-delete-button"
+            >
+              <TrashIcon />
+            </button>
           )}
         </div>
       </Link>

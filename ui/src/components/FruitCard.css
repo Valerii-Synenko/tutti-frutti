@@ -91,6 +91,13 @@
   font-size: 14px;
 }
 
+.fruit-card__delete-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--color-surface);
+}
+
 .fruit-card__out-of-stock {
   display: inline-block;
   color: var(--color-watermelon);

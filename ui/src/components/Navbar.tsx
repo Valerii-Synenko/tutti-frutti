@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
+import { ShieldIcon, StoreIcon, UserIcon } from './icons';
 import './Navbar.css';
 
 export function Navbar() {
@@ -26,7 +27,16 @@ export function Navbar() {
 
           {user ? (
             <div className="navbar__user">
-              <span data-testid="nav-user-name">{user.full_name}</span>
+              <Link to="/cabinet" className="navbar__cabinet-link" data-testid="nav-cabinet-link">
+                {user.is_admin ? (
+                  <ShieldIcon className="navbar__cabinet-icon navbar__cabinet-icon--admin" />
+                ) : user.is_seller ? (
+                  <StoreIcon className="navbar__cabinet-icon navbar__cabinet-icon--seller" />
+                ) : (
+                  <UserIcon className="navbar__cabinet-icon" />
+                )}
+                <span data-testid="nav-user-name">{user.full_name}</span>
+              </Link>
               <button className="btn-secondary navbar__logout" onClick={logout} data-testid="logout-button">
                 Log out
               </button>

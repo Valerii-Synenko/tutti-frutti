@@ -1,0 +1,123 @@
+.cabinet-page {
+  padding: 40px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 720px;
+}
+
+.cabinet-page h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 30px;
+}
+
+.cabinet-page__title-icon {
+  color: var(--color-citrus);
+}
+
+.cabinet-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 28px;
+}
+
+.cabinet-card h2 {
+  font-size: 19px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cabinet-card__hint {
+  color: var(--color-ink-soft);
+  font-size: 14px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.cabinet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cabinet-form label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.cabinet-form input,
+.cabinet-form textarea {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.cabinet-checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  margin-top: 14px !important;
+}
+
+.cabinet-form button {
+  margin-top: 18px;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cabinet-form__error {
+  color: var(--color-watermelon);
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.cabinet-form__success {
+  color: var(--color-leaf);
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.cabinet-fruit-list {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cabinet-fruit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.cabinet-fruit-row__name {
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-ink);
+}
+
+.cabinet-fruit-row__meta {
+  color: var(--color-ink-soft);
+  font-size: 12px;
+  margin-right: auto;
+}
+
+.cabinet-fruit-row .fruit-status-badge {
+  margin-right: auto;
+}

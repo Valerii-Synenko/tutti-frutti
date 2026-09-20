@@ -2,12 +2,20 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api } from '../api/client';
 import type { TokenPair, User } from '../types';
 
+interface ProfileUpdate {
+  email?: string;
+  full_name?: string;
+  password?: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (update: ProfileUpdate) => Promise<void>;
+  becomeSeller: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -37,6 +45,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadCurrentUser();
   }, [loadCurrentUser]);
 
+  useEffect(() => {
+    // If the browser restores this page from the back/forward cache (most
+    // common on Safari), the entire React tree — including whichever user
+    // was logged in at the time — comes back frozen exactly as it was. Force
+    // a re-check against the token that's actually in localStorage now, so
+    // switching users in the meantime can't leave stale admin/seller UI showing.
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        loadCurrentUser();
+      }
+    }
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [loadCurrentUser]);
+
   const login = useCallback(async (email: string, password: string) => {
     const form = new URLSearchParams();
     form.set('username', email);
@@ -58,9 +81,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback(async (update: ProfileUpdate) => {
+    const updated = await api.patch<User>('/auth/me', update);
+    setUser(updated);
+  }, []);
+
+  const becomeSeller = useCallback(async () => {
+    // The seller flag is embedded in the access token, so we need a fresh one.
+    const tokens = await api.post<TokenPair>('/auth/become-seller');
+    localStorage.setItem('tf_access_token', tokens.access_token);
+    localStorage.setItem('tf_refresh_token', tokens.refresh_token);
+    await loadCurrentUser();
+  }, [loadCurrentUser]);
+
   const value = useMemo(
-    () => ({ user, isLoading, login, register, logout }),
-    [user, isLoading, login, register, logout]
+    () => ({ user, isLoading, login, register, logout, updateProfile, becomeSeller }),
+    [user, isLoading, login, register, logout, updateProfile, becomeSeller]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

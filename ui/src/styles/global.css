@@ -103,3 +103,51 @@ textarea:focus-visible {
   font-weight: 600;
   font-size: 15px;
 }
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.icon-button:hover {
+  background: var(--color-bg);
+}
+
+.icon-button--danger {
+  color: var(--color-watermelon);
+}
+
+.icon-button--success {
+  color: var(--color-leaf);
+}
+
+.fruit-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.fruit-status-badge--approved {
+  background: rgba(61, 131, 97, 0.15);
+  color: var(--color-leaf);
+}
+
+.fruit-status-badge--pending {
+  background: rgba(244, 185, 62, 0.25);
+  color: #8a6a0f;
+}
+
+.fruit-status-badge--rejected {
+  background: rgba(232, 72, 60, 0.15);
+  color: var(--color-watermelon);
+}

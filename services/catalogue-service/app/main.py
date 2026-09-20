@@ -6,7 +6,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 
-from app.auth import require_auth
+from app.auth import AuthClaims, require_admin, require_auth, require_claims, require_seller
 from app.database import ensure_indexes, get_comments_collection, get_fruits_collection
 from app.schemas import CommentIn, CommentOut, FruitCreate, FruitOut, FruitUpdate
 
@@ -70,7 +70,26 @@ async def list_fruits(
     if in_season_month:
         filter_query["seasonal_months"] = in_season_month
 
+    # The public storefront only ever shows moderated, approved listings.
+    filter_query["status"] = "approved"
+
     cursor = collection.find(filter_query).skip(offset).limit(limit)
+    return [doc async for doc in cursor]
+
+
+@app.get("/fruits/mine", response_model=list[FruitOut], tags=["fruits"])
+async def list_my_fruits(claims: AuthClaims = Depends(require_seller)):
+    """Lists every fruit the current seller has listed, regardless of moderation status."""
+    collection = get_fruits_collection()
+    cursor = collection.find({"seller_id": claims.user_id}).sort("_id", -1)
+    return [doc async for doc in cursor]
+
+
+@app.get("/fruits/pending", response_model=list[FruitOut], tags=["fruits"])
+async def list_pending_fruits(_claims: AuthClaims = Depends(require_admin)):
+    """Admin-only moderation queue of listings awaiting approval."""
+    collection = get_fruits_collection()
+    cursor = collection.find({"status": "pending"}).sort("_id", 1)
     return [doc async for doc in cursor]
 
 
@@ -83,21 +102,41 @@ async def get_fruit(slug: str):
     return doc
 
 
+async def _get_fruit_or_404(collection, fruit_id: str) -> dict:
+    doc = await collection.find_one({"_id": _to_object_id(fruit_id)})
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fruit not found")
+    return doc
+
+
+def _assert_owner_or_admin(doc: dict, claims: AuthClaims) -> None:
+    if claims.is_admin or doc.get("seller_id") == claims.user_id:
+        return
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not the seller of this fruit")
+
+
 @app.post("/fruits", response_model=FruitOut, status_code=status.HTTP_201_CREATED, tags=["fruits"])
-async def create_fruit(payload: FruitCreate, _user_id: str = Depends(require_auth)):
+async def create_fruit(payload: FruitCreate, claims: AuthClaims = Depends(require_seller)):
     collection = get_fruits_collection()
     existing = await collection.find_one({"slug": payload.slug})
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Slug already exists")
 
-    result = await collection.insert_one(payload.model_dump())
-    doc = await collection.find_one({"_id": result.inserted_id})
-    return doc
+    doc = payload.model_dump()
+    doc["seller_id"] = claims.user_id
+    # Admin-created listings go straight to the shelf; seller listings need moderation.
+    doc["status"] = "approved" if claims.is_admin else "pending"
+
+    result = await collection.insert_one(doc)
+    return await collection.find_one({"_id": result.inserted_id})
 
 
 @app.patch("/fruits/{fruit_id}", response_model=FruitOut, tags=["fruits"])
-async def update_fruit(fruit_id: str, payload: FruitUpdate, _user_id: str = Depends(require_auth)):
+async def update_fruit(fruit_id: str, payload: FruitUpdate, claims: AuthClaims = Depends(require_claims)):
     collection = get_fruits_collection()
+    existing = await _get_fruit_or_404(collection, fruit_id)
+    _assert_owner_or_admin(existing, claims)
+
     update_data = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
@@ -105,17 +144,35 @@ async def update_fruit(fruit_id: str, payload: FruitUpdate, _user_id: str = Depe
     result = await collection.find_one_and_update(
         {"_id": _to_object_id(fruit_id)}, {"$set": update_data}, return_document=True
     )
-    if result is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fruit not found")
     return result
 
 
 @app.delete("/fruits/{fruit_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["fruits"])
-async def delete_fruit(fruit_id: str, _user_id: str = Depends(require_auth)):
+async def delete_fruit(fruit_id: str, claims: AuthClaims = Depends(require_claims)):
     collection = get_fruits_collection()
-    result = await collection.delete_one({"_id": _to_object_id(fruit_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fruit not found")
+    existing = await _get_fruit_or_404(collection, fruit_id)
+    _assert_owner_or_admin(existing, claims)
+    await collection.delete_one({"_id": _to_object_id(fruit_id)})
+
+
+@app.post("/fruits/{fruit_id}/approve", response_model=FruitOut, tags=["fruits"])
+async def approve_fruit(fruit_id: str, _claims: AuthClaims = Depends(require_admin)):
+    collection = get_fruits_collection()
+    await _get_fruit_or_404(collection, fruit_id)
+    result = await collection.find_one_and_update(
+        {"_id": _to_object_id(fruit_id)}, {"$set": {"status": "approved"}}, return_document=True
+    )
+    return result
+
+
+@app.post("/fruits/{fruit_id}/reject", response_model=FruitOut, tags=["fruits"])
+async def reject_fruit(fruit_id: str, _claims: AuthClaims = Depends(require_admin)):
+    collection = get_fruits_collection()
+    await _get_fruit_or_404(collection, fruit_id)
+    result = await collection.find_one_and_update(
+        {"_id": _to_object_id(fruit_id)}, {"$set": {"status": "rejected"}}, return_document=True
+    )
+    return result
 
 
 # ---- Comments ---------------------------------------------------------------

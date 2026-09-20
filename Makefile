@@ -1,4 +1,4 @@
-.PHONY: up down build seed proto logs test-e2e docs
+.PHONY: up down build seed proto logs test test-e2e docs
 
 ## Start the full stack (builds images on first run)
 up:
@@ -34,6 +34,15 @@ proto:
 ## Run the UI's Playwright e2e suite against a running stack
 test-e2e:
 	cd ui && npm install && npx playwright install --with-deps chromium && npx playwright test
+
+## Run every backend service's pytest suite (in-memory DB / mocked upstreams, no Docker needed)
+test:
+	for svc in users-service catalogue-service orders-service gateway; do \
+		echo "== $$svc =="; \
+		(cd services/$$svc && python3 -m venv .venv-test 2>/dev/null; \
+		 .venv-test/bin/pip install -q -r requirements-test.txt && \
+		 .venv-test/bin/pytest -q) || exit 1; \
+	done
 
 ## Collect OpenAPI specs from running services and start the Zudoku docs preview
 docs:

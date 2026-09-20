@@ -210,7 +210,11 @@ export function CataloguePage() {
           )}
           <div className="catalogue-grid" data-testid="fruit-grid">
             {displayed.map((fruit) => (
-              <FruitCard key={fruit.slug} fruit={fruit} />
+              <FruitCard
+                key={fruit.slug}
+                fruit={fruit}
+                onDeleted={(slug) => setFruits((prev) => prev.filter((f) => f.slug !== slug))}
+              />
             ))}
           </div>
         </div>

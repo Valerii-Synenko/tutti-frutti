@@ -19,7 +19,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${GATEWAY_URL}${path}`, { ...options, headers });
+  // 'no-store' is required, not just belt-and-braces: browsers reuse fetch
+  // responses from the session history cache on back/forward navigation even
+  // without any explicit opt-in — without this, going back after logging out
+  // and back in as someone else can render another user's /auth/me, /fruits/mine
+  // or /fruits/pending response straight from cache instead of hitting the network.
+  const response = await fetch(`${GATEWAY_URL}${path}`, { ...options, headers, cache: 'no-store' });
 
   if (!response.ok) {
     let detail = response.statusText;

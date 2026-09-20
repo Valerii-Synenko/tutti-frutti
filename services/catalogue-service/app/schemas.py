@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Literal, Optional
 
-from bson import ObjectId
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+
+ModerationStatus = Literal["pending", "approved", "rejected"]
 
 # This is exactly the case that motivates using MongoDB for the catalogue:
 # different fruits have genuinely different attribute shapes (tropical fruits
@@ -46,6 +47,12 @@ class FruitOut(FruitBase):
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
     id: PyObjectId = Field(alias="_id")
+    seller_id: Optional[str] = Field(default=None, description="User id of the seller who listed this fruit; None for house-catalogue items")
+    status: ModerationStatus = Field(default="approved", description="Moderation status; only 'approved' fruits are shown on the public storefront")
+
+
+class FruitModerationOut(FruitOut):
+    """Same shape as FruitOut; used on moderation/seller-facing endpoints for clarity in the docs."""
 
 
 class CommentIn(BaseModel):

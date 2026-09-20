@@ -17,7 +17,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> str:
+def _create_token(subject: str, expires_delta: timedelta, token_type: str, **extra_claims) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": subject,
@@ -25,13 +25,20 @@ def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> st
         "iat": now,
         "exp": now + expires_delta,
         "jti": str(uuid.uuid4()),
+        **extra_claims,
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(user_id: str, is_admin: bool = False, is_seller: bool = False) -> str:
+    """Embeds is_admin/is_seller in the access token so other services (catalogue-service)
+    can authorize requests without a network round-trip back to users-service."""
     return _create_token(
-        user_id, timedelta(minutes=settings.access_token_expire_minutes), "access"
+        user_id,
+        timedelta(minutes=settings.access_token_expire_minutes),
+        "access",
+        is_admin=is_admin,
+        is_seller=is_seller,
     )
 
 

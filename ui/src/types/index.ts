@@ -1,5 +1,7 @@
+export type FruitStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Fruit {
-  id: string;
+  _id: string;
   name: string;
   slug: string;
   description: string;
@@ -10,15 +12,32 @@ export interface Fruit {
   image_url: string | null;
   base_price_hint_eur: number;
   attributes: Record<string, unknown>;
+  seller_id: string | null;
+  status: FruitStatus;
   live_price_eur: number | null;
   quantity_available: number | null;
   in_stock: boolean;
+}
+
+export interface FruitCreateInput {
+  name: string;
+  slug: string;
+  description: string;
+  origin: string;
+  is_organic: boolean;
+  seasonal_months: number[];
+  tags: string[];
+  image_url: string | null;
+  base_price_hint_eur: number;
+  attributes: Record<string, unknown>;
 }
 
 export interface User {
   id: string;
   email: string;
   full_name: string;
+  is_admin: boolean;
+  is_seller: boolean;
 }
 
 export interface TokenPair {

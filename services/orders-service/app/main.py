@@ -1,8 +1,10 @@
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth import require_auth
 from app.database import Order, OrderItem, get_db, init_models
@@ -84,13 +86,25 @@ async def create_order(
 
 @app.get("/orders", response_model=list[OrderOut], tags=["orders"])
 async def list_my_orders(user_id: str = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Order).where(Order.user_id == user_id).order_by(Order.created_at.desc()))
+    result = await db.execute(
+        select(Order)
+        .where(Order.user_id == user_id)
+        .options(selectinload(Order.items))
+        .order_by(Order.created_at.desc())
+    )
     return result.scalars().unique().all()
 
 
 @app.get("/orders/{order_id}", response_model=OrderOut, tags=["orders"])
 async def get_order(order_id: str, user_id: str = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    try:
+        order_uuid = uuid.UUID(order_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    result = await db.execute(
+        select(Order).where(Order.id == order_uuid).options(selectinload(Order.items))
+    )
     order = result.scalar_one_or_none()
     if order is None or order.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")

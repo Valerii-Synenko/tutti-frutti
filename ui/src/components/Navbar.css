@@ -68,6 +68,33 @@
   gap: 12px;
 }
 
+.navbar__cabinet-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--color-ink);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease;
+}
+
+.navbar__cabinet-link:hover {
+  background: var(--color-bg);
+}
+
+.navbar__cabinet-icon {
+  color: var(--color-ink-soft);
+}
+
+.navbar__cabinet-icon--seller {
+  color: var(--color-leaf);
+}
+
+.navbar__cabinet-icon--admin {
+  color: var(--color-citrus-dark);
+}
+
 .navbar__logout {
   padding: 6px 14px;
   font-size: 13px;

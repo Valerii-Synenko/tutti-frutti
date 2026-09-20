@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 import { useCart } from '../hooks/useCart';
+import { TrashIcon } from '../components/icons';
 import type { Comment, Fruit } from '../types';
 import './FruitDetailPage.css';
 
@@ -19,7 +20,8 @@ export function FruitDetailPage() {
   const [isPosting, setIsPosting] = useState(false);
   const { addToCart } = useCart();
   const { user } = useAuth();
-  const isAdmin = user?.email === 'admin@admin.com';
+  const isAdmin = user?.is_admin ?? false;
+  const canManageFruit = !!fruit && !!user && (isAdmin || fruit.seller_id === user.id);
 
   useEffect(() => {
     if (!slug) return;
@@ -71,6 +73,12 @@ export function FruitDetailPage() {
     }
   }
 
+  async function handleDeleteFruit() {
+    if (!fruit || !window.confirm(`Delete "${fruit.name}"? This cannot be undone.`)) return;
+    await api.delete(`/fruits/${fruit._id}`);
+    navigate('/');
+  }
+
   if (error) return <p className="container" data-testid="error-message" role="alert">{error}</p>;
   if (!fruit) return <p className="container" data-testid="loading-indicator">Loading…</p>;
 
@@ -88,7 +96,27 @@ export function FruitDetailPage() {
         </div>
 
         <div className="fruit-detail__info">
-          <h1 data-testid="fruit-detail-name">{fruit.name}</h1>
+          <div className="fruit-detail__title-row">
+            <h1 data-testid="fruit-detail-name">{fruit.name}</h1>
+            {fruit.status !== 'approved' && (
+              <span
+                className={`fruit-status-badge fruit-status-badge--${fruit.status}`}
+                data-testid="fruit-detail-status-badge"
+              >
+                {fruit.status === 'pending' ? 'Awaiting moderation' : 'Rejected'}
+              </span>
+            )}
+            {canManageFruit && (
+              <button
+                className="icon-button icon-button--danger"
+                onClick={handleDeleteFruit}
+                aria-label={`Delete ${fruit.name}`}
+                data-testid="fruit-detail-delete-button"
+              >
+                <TrashIcon />
+              </button>
+            )}
+          </div>
           <p className="fruit-detail__origin">{fruit.origin}</p>
           <p className="fruit-detail__price" data-testid="fruit-detail-price">€{price.toFixed(2)}</p>
           <p className="fruit-detail__description">{fruit.description}</p>
