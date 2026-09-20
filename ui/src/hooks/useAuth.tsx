@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { TokenPair, User } from '../types';
 
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   const loadCurrentUser = useCallback(async () => {
     const token = localStorage.getItem('tf_access_token');
@@ -79,7 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('tf_access_token');
     localStorage.removeItem('tf_refresh_token');
     setUser(null);
-  }, []);
+    // `replace` (not push) so the back button can't return to a page that was
+    // rendered while authenticated — same class of leak the no-store/pageshow
+    // fixes address, just for the in-app navigation stack instead of the cache.
+    navigate('/', { replace: true });
+  }, [navigate]);
 
   const updateProfile = useCallback(async (update: ProfileUpdate) => {
     const updated = await api.patch<User>('/auth/me', update);

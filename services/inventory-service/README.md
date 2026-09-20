@@ -52,6 +52,20 @@ generates the stubs automatically as part of the multi-stage Docker build.
    go run ./cmd/server
    ```
 
+## RPCs
+
+| RPC | Called by | Purpose |
+|---|---|---|
+| `GetStock` / `BatchGetStock` | gateway, orders-service | Read current quantity/price for one or more SKUs |
+| `ReserveStock` | orders-service | Decrement stock when an order is placed |
+| `UpsertStock` | gateway | Create/replace a SKU's stock entry — called whenever `catalogue-service` reports a fruit as `approved` (seller listing approved, admin-created fruit, or a restock/reprice edit), so it becomes orderable |
+| `HealthCheck` | tests/CI | Trivial liveness check |
+
+Stock is **in-memory only** (see `internal/storage/store.go`) — it resets to
+the 7 seeded demo SKUs on every restart. `UpsertStock`-registered SKUs (from
+seller listings) are lost on restart too; re-approve the listing (or PATCH it)
+to re-register.
+
 ## Testing the gRPC contract manually
 
 With `grpcurl` (`brew install grpcurl` / see grpcurl releases):
@@ -59,6 +73,8 @@ With `grpcurl` (`brew install grpcurl` / see grpcurl releases):
 ```bash
 grpcurl -plaintext localhost:50051 list
 grpcurl -plaintext -d '{"sku": "alphonso-mango"}' localhost:50051 inventory.InventoryService/GetStock
+grpcurl -plaintext -d '{"sku": "my-new-fruit", "quantity_available": 20, "unit_price_eur": 2.5}' \
+  localhost:50051 inventory.InventoryService/UpsertStock
 grpcurl -plaintext localhost:50051 grpc.health.v1.Health/Check
 ```
 

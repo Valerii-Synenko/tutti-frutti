@@ -37,6 +37,27 @@ Browser (UI) ──► gateway ──┬──► users-service ────► 
                             └──► fruit-assistant-service ──► Anthropic API
 ```
 
+The gateway also calls `inventory-service` directly over gRPC — to enrich
+catalogue responses with live stock/price, and to register a fruit's stock
+the moment `catalogue-service` reports it approved (see below).
+
+## Roles & the seller marketplace
+
+Any account can become a **seller** (`POST /auth/become-seller`) to list
+fruit, or is seeded as an **admin** (`admin@admin.com` / `admin`) to moderate
+listings. Both roles are embedded as claims in the access token, so
+`catalogue-service` can authorize seller/admin-only endpoints without calling
+back to `users-service`.
+
+A seller-submitted fruit starts as `status: "pending"` — `GET /fruits` (the
+public storefront) only ever returns `"approved"` listings. Once an admin
+calls `POST /fruits/{id}/approve`, the gateway also registers that fruit's
+stock with `inventory-service` (`UpsertStock`), so it becomes genuinely
+orderable, not just visible. `POST /fruits/{id}/reject` leaves it off the
+shelf. Either the listing's seller or any admin can `DELETE` it regardless
+of status. `GET /sales/summary?skus=...` (proxied from `orders-service`)
+gives a seller aggregate units-sold/revenue for their own listings.
+
 ## Quick start
 
 ```bash

@@ -6,7 +6,14 @@ import './Navbar.css';
 
 export function Navbar() {
   const { user, logout } = useAuth();
-  const { totalItems } = useCart();
+  const { totalItems, clearCart } = useCart();
+
+  function handleLogout() {
+    // The cart is client-only and not tied to an account server-side — clear
+    // it so the next person to log in on this browser doesn't inherit it.
+    clearCart();
+    logout();
+  }
 
   return (
     <header className="navbar" data-testid="navbar">
@@ -37,7 +44,7 @@ export function Navbar() {
                 )}
                 <span data-testid="nav-user-name">{user.full_name}</span>
               </Link>
-              <button className="btn-secondary navbar__logout" onClick={logout} data-testid="logout-button">
+              <button className="btn-secondary navbar__logout" onClick={handleLogout} data-testid="logout-button">
                 Log out
               </button>
             </div>
