@@ -2,7 +2,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.main import app as fastapi_app
 from tests.conftest import auth_headers
 
 
@@ -111,3 +110,48 @@ async def test_get_order_returns_404_for_another_users_order(client):
 
     own_resp = await client.get(f"/orders/{order_id}", headers=headers_a)
     assert own_resp.status_code == 200
+
+
+# ---- Sales summary ----------------------------------------------------------
+
+async def test_sales_summary_requires_auth(client):
+    resp = await client.get("/sales/summary?skus=pink-lady-apple")
+    assert resp.status_code == 401
+
+
+async def test_sales_summary_requires_skus(client):
+    resp = await client.get("/sales/summary?skus=", headers=auth_headers())
+    assert resp.status_code == 400
+
+
+async def test_sales_summary_aggregates_across_all_buyers(client):
+    await client.post(
+        "/orders",
+        json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 2}]},
+        headers=auth_headers("buyer-a"),
+    )
+    await client.post(
+        "/orders",
+        json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 3}]},
+        headers=auth_headers("buyer-b"),
+    )
+
+    # Requested by a third party (the seller), not either buyer.
+    resp = await client.get("/sales/summary?skus=pink-lady-apple", headers=auth_headers("seller-x"))
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["items"] == [
+        {"fruit_sku": "pink-lady-apple", "quantity_sold": 5, "revenue_eur": pytest.approx(3.25), "orders_count": 2}
+    ]
+    assert body["total_quantity_sold"] == 5
+    assert body["total_revenue_eur"] == pytest.approx(3.25)
+
+
+async def test_sales_summary_includes_zero_sales_for_unsold_skus(client):
+    resp = await client.get(
+        "/sales/summary?skus=pink-lady-apple,never-sold-fruit", headers=auth_headers()
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    never_sold = next(i for i in body["items"] if i["fruit_sku"] == "never-sold-fruit")
+    assert never_sold == {"fruit_sku": "never-sold-fruit", "quantity_sold": 0, "revenue_eur": 0.0, "orders_count": 0}

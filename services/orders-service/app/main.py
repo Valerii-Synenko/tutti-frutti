@@ -1,15 +1,15 @@
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, status
-from sqlalchemy import select
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth import require_auth
 from app.database import Order, OrderItem, get_db, init_models
 from app.inventory_client import inventory_client
-from app.schemas import OrderCreate, OrderOut
+from app.schemas import OrderCreate, OrderOut, SalesSummaryItem, SalesSummaryOut
 
 
 @asynccontextmanager
@@ -109,3 +109,47 @@ async def get_order(order_id: str, user_id: str = Depends(require_auth), db: Asy
     if order is None or order.user_id != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order
+
+
+@app.get("/sales/summary", response_model=SalesSummaryOut, tags=["sales"])
+async def sales_summary(
+    skus: str = Query(..., description="Comma-separated fruit slugs, e.g. 'pink-lady-apple,alphonso-mango'"),
+    _user_id: str = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Aggregates units sold / revenue per fruit slug across all confirmed
+    orders — a seller passes the slugs of their own listings (from
+    catalogue-service) to get a sales calculator for just their products."""
+    sku_list = [s.strip() for s in skus.split(",") if s.strip()]
+    if not sku_list:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No skus provided")
+
+    result = await db.execute(
+        select(
+            OrderItem.fruit_sku,
+            func.sum(OrderItem.quantity).label("quantity_sold"),
+            func.sum(OrderItem.quantity * OrderItem.unit_price_eur).label("revenue_eur"),
+            func.count(func.distinct(OrderItem.order_id)).label("orders_count"),
+        )
+        .join(Order, Order.id == OrderItem.order_id)
+        .where(OrderItem.fruit_sku.in_(sku_list), Order.status == "confirmed")
+        .group_by(OrderItem.fruit_sku)
+    )
+    by_sku = {row.fruit_sku: row for row in result.all()}
+
+    items = []
+    for sku in sku_list:
+        row = by_sku.get(sku)
+        items.append(
+            SalesSummaryItem(
+                fruit_sku=sku,
+                quantity_sold=int(row.quantity_sold) if row else 0,
+                revenue_eur=round(float(row.revenue_eur), 2) if row else 0.0,
+                orders_count=int(row.orders_count) if row else 0,
+            )
+        )
+    return SalesSummaryOut(
+        items=items,
+        total_quantity_sold=sum(item.quantity_sold for item in items),
+        total_revenue_eur=round(sum(item.revenue_eur for item in items), 2),
+    )

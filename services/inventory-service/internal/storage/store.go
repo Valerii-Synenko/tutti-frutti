@@ -58,6 +58,18 @@ func (s *Store) BatchGet(skus []string) []*Item {
 	return result
 }
 
+// Upsert creates the stock entry for sku if it doesn't exist yet, or
+// replaces its quantity/price if it does. Used to bring a seller's newly
+// approved fruit listing into the stock catalogue so it becomes orderable.
+func (s *Store) Upsert(sku string, quantityAvailable int32, unitPriceEUR float64) *Item {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	item := &Item{SKU: sku, QuantityAvailable: quantityAvailable, UnitPriceEUR: unitPriceEUR}
+	s.items[sku] = item
+	return item
+}
+
 // Reserve decrements available quantity for an order. Returns the remaining
 // quantity and whether the reservation succeeded.
 func (s *Store) Reserve(sku string, quantity int32) (int32, bool) {

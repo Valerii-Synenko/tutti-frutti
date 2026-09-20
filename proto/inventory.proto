@@ -17,6 +17,12 @@ service InventoryService {
   // ReserveStock decrements stock when an order is placed (best-effort, in-memory demo).
   rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
 
+  // UpsertStock creates or replaces the stock entry for a SKU. Called by the
+  // gateway when a seller's fruit listing is approved (or its declared
+  // quantity changes), so newly listed products become purchasable —
+  // otherwise ReserveStock would never find them.
+  rpc UpsertStock(UpsertStockRequest) returns (StockInfo);
+
   // HealthCheck is a trivial RPC used by tests and CI to confirm the service is up.
   rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 }
@@ -49,6 +55,12 @@ message ReserveStockResponse {
   bool success = 1;
   string message = 2;
   int32 remaining_quantity = 3;
+}
+
+message UpsertStockRequest {
+  string sku = 1;
+  int32 quantity_available = 2;
+  double unit_price_eur = 3;
 }
 
 message HealthCheckRequest {}

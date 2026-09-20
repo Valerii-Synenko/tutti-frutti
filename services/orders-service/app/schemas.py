@@ -29,3 +29,16 @@ class OrderOut(BaseModel):
     total_eur: float
     created_at: datetime
     items: list[OrderItemOut]
+
+
+class SalesSummaryItem(BaseModel):
+    fruit_sku: str
+    quantity_sold: int
+    revenue_eur: float
+    orders_count: int
+
+
+class SalesSummaryOut(BaseModel):
+    items: list[SalesSummaryItem]
+    total_quantity_sold: int
+    total_revenue_eur: float

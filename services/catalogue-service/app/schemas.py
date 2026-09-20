@@ -24,6 +24,7 @@ class FruitBase(BaseModel):
     tags: list[str] = Field(default_factory=list)
     image_url: Optional[str] = None
     base_price_hint_eur: float = Field(default=0.0, ge=0, description="Reference price; authoritative price comes from inventory-service")
+    initial_quantity: int = Field(default=0, ge=0, description="Units the seller currently has in stock; used to seed inventory-service once the listing is approved")
     attributes: dict[str, Any] = Field(default_factory=dict, description="Schema-flexible, fruit-specific attributes")
 
 
@@ -40,6 +41,7 @@ class FruitUpdate(BaseModel):
     tags: Optional[list[str]] = None
     image_url: Optional[str] = None
     base_price_hint_eur: Optional[float] = None
+    initial_quantity: Optional[int] = Field(default=None, ge=0)
     attributes: Optional[dict[str, Any]] = None
 
 

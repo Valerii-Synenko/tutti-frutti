@@ -14,6 +14,13 @@ class InventoryClient:
         response = await self._stub.BatchGetStock(inventory_pb2.BatchGetStockRequest(skus=skus))
         return list(response.items)
 
+    async def upsert_stock(self, sku: str, quantity_available: int, unit_price_eur: float) -> inventory_pb2.StockInfo:
+        return await self._stub.UpsertStock(
+            inventory_pb2.UpsertStockRequest(
+                sku=sku, quantity_available=quantity_available, unit_price_eur=unit_price_eur
+            )
+        )
+
     async def close(self) -> None:
         await self._channel.close()
 

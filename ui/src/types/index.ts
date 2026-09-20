@@ -11,6 +11,7 @@ export interface Fruit {
   tags: string[];
   image_url: string | null;
   base_price_hint_eur: number;
+  initial_quantity: number;
   attributes: Record<string, unknown>;
   seller_id: string | null;
   status: FruitStatus;
@@ -29,6 +30,7 @@ export interface FruitCreateInput {
   tags: string[];
   image_url: string | null;
   base_price_hint_eur: number;
+  initial_quantity: number;
   attributes: Record<string, unknown>;
 }
 
@@ -77,4 +79,17 @@ export interface Comment {
   body: string;
   created_at: string;
   user_id: string | null;
+}
+
+export interface SalesSummaryItem {
+  fruit_sku: string;
+  quantity_sold: number;
+  revenue_eur: number;
+  orders_count: number;
+}
+
+export interface SalesSummary {
+  items: SalesSummaryItem[];
+  total_quantity_sold: number;
+  total_revenue_eur: number;
 }

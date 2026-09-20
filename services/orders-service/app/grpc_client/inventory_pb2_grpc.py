@@ -52,6 +52,11 @@ class InventoryServiceStub(object):
                 request_serializer=inventory__pb2.ReserveStockRequest.SerializeToString,
                 response_deserializer=inventory__pb2.ReserveStockResponse.FromString,
                 _registered_method=True)
+        self.UpsertStock = channel.unary_unary(
+                '/inventory.InventoryService/UpsertStock',
+                request_serializer=inventory__pb2.UpsertStockRequest.SerializeToString,
+                response_deserializer=inventory__pb2.StockInfo.FromString,
+                _registered_method=True)
         self.HealthCheck = channel.unary_unary(
                 '/inventory.InventoryService/HealthCheck',
                 request_serializer=inventory__pb2.HealthCheckRequest.SerializeToString,
@@ -86,6 +91,16 @@ class InventoryServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def UpsertStock(self, request, context):
+        """UpsertStock creates or replaces the stock entry for a SKU. Called by the
+        gateway when a seller's fruit listing is approved (or its declared
+        quantity changes), so newly listed products become purchasable —
+        otherwise ReserveStock would never find them.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def HealthCheck(self, request, context):
         """HealthCheck is a trivial RPC used by tests and CI to confirm the service is up.
         """
@@ -110,6 +125,11 @@ def add_InventoryServiceServicer_to_server(servicer, server):
                     servicer.ReserveStock,
                     request_deserializer=inventory__pb2.ReserveStockRequest.FromString,
                     response_serializer=inventory__pb2.ReserveStockResponse.SerializeToString,
+            ),
+            'UpsertStock': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpsertStock,
+                    request_deserializer=inventory__pb2.UpsertStockRequest.FromString,
+                    response_serializer=inventory__pb2.StockInfo.SerializeToString,
             ),
             'HealthCheck': grpc.unary_unary_rpc_method_handler(
                     servicer.HealthCheck,
@@ -201,6 +221,33 @@ class InventoryService(object):
             '/inventory.InventoryService/ReserveStock',
             inventory__pb2.ReserveStockRequest.SerializeToString,
             inventory__pb2.ReserveStockResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpsertStock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/inventory.InventoryService/UpsertStock',
+            inventory__pb2.UpsertStockRequest.SerializeToString,
+            inventory__pb2.StockInfo.FromString,
             options,
             channel_credentials,
             insecure,

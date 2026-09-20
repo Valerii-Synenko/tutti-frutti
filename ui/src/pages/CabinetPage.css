@@ -121,3 +121,38 @@
 .cabinet-fruit-row .fruit-status-badge {
   margin-right: auto;
 }
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.sales-table th,
+.sales-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1.5px solid var(--color-border);
+}
+
+.sales-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-ink-soft);
+}
+
+.sales-table td:not(:first-child),
+.sales-table th:not(:first-child) {
+  text-align: right;
+}
+
+.sales-table tfoot th {
+  border-bottom: none;
+  border-top: 2px solid var(--color-ink);
+  color: var(--color-ink);
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: normal;
+}

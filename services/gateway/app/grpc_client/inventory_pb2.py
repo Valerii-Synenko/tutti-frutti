@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0finventory.proto\x12\tinventory\"\x1e\n\x0fGetStockRequest\x12\x0b\n\x03sku\x18\x01 \x01(\t\"$\n\x14\x42\x61tchGetStockRequest\x12\x0c\n\x04skus\x18\x01 \x03(\t\"^\n\tStockInfo\x12\x0b\n\x03sku\x18\x01 \x01(\t\x12\x1a\n\x12quantity_available\x18\x02 \x01(\x05\x12\x16\n\x0eunit_price_eur\x18\x03 \x01(\x01\x12\x10\n\x08in_stock\x18\x04 \x01(\x08\"5\n\x0e\x42\x61tchStockInfo\x12#\n\x05items\x18\x01 \x03(\x0b\x32\x14.inventory.StockInfo\"4\n\x13ReserveStockRequest\x12\x0b\n\x03sku\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\"T\n\x14ReserveStockResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x1a\n\x12remaining_quantity\x18\x03 \x01(\x05\"\x14\n\x12HealthCheckRequest\"%\n\x13HealthCheckResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2\xbc\x02\n\x10InventoryService\x12<\n\x08GetStock\x12\x1a.inventory.GetStockRequest\x1a\x14.inventory.StockInfo\x12K\n\rBatchGetStock\x12\x1f.inventory.BatchGetStockRequest\x1a\x19.inventory.BatchStockInfo\x12O\n\x0cReserveStock\x12\x1e.inventory.ReserveStockRequest\x1a\x1f.inventory.ReserveStockResponse\x12L\n\x0bHealthCheck\x12\x1d.inventory.HealthCheckRequest\x1a\x1e.inventory.HealthCheckResponseB/Z-tutti-frutti/inventory-service/internal/protob\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0finventory.proto\x12\tinventory\"\x1e\n\x0fGetStockRequest\x12\x0b\n\x03sku\x18\x01 \x01(\t\"$\n\x14\x42\x61tchGetStockRequest\x12\x0c\n\x04skus\x18\x01 \x03(\t\"^\n\tStockInfo\x12\x0b\n\x03sku\x18\x01 \x01(\t\x12\x1a\n\x12quantity_available\x18\x02 \x01(\x05\x12\x16\n\x0eunit_price_eur\x18\x03 \x01(\x01\x12\x10\n\x08in_stock\x18\x04 \x01(\x08\"5\n\x0e\x42\x61tchStockInfo\x12#\n\x05items\x18\x01 \x03(\x0b\x32\x14.inventory.StockInfo\"4\n\x13ReserveStockRequest\x12\x0b\n\x03sku\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\"T\n\x14ReserveStockResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x1a\n\x12remaining_quantity\x18\x03 \x01(\x05\"U\n\x12UpsertStockRequest\x12\x0b\n\x03sku\x18\x01 \x01(\t\x12\x1a\n\x12quantity_available\x18\x02 \x01(\x05\x12\x16\n\x0eunit_price_eur\x18\x03 \x01(\x01\"\x14\n\x12HealthCheckRequest\"%\n\x13HealthCheckResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2\x80\x03\n\x10InventoryService\x12<\n\x08GetStock\x12\x1a.inventory.GetStockRequest\x1a\x14.inventory.StockInfo\x12K\n\rBatchGetStock\x12\x1f.inventory.BatchGetStockRequest\x1a\x19.inventory.BatchStockInfo\x12O\n\x0cReserveStock\x12\x1e.inventory.ReserveStockRequest\x1a\x1f.inventory.ReserveStockResponse\x12\x42\n\x0bUpsertStock\x12\x1d.inventory.UpsertStockRequest\x1a\x14.inventory.StockInfo\x12L\n\x0bHealthCheck\x12\x1d.inventory.HealthCheckRequest\x1a\x1e.inventory.HealthCheckResponseB/Z-tutti-frutti/inventory-service/internal/protob\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -44,10 +44,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_RESERVESTOCKREQUEST']._serialized_end=303
   _globals['_RESERVESTOCKRESPONSE']._serialized_start=305
   _globals['_RESERVESTOCKRESPONSE']._serialized_end=389
-  _globals['_HEALTHCHECKREQUEST']._serialized_start=391
-  _globals['_HEALTHCHECKREQUEST']._serialized_end=411
-  _globals['_HEALTHCHECKRESPONSE']._serialized_start=413
-  _globals['_HEALTHCHECKRESPONSE']._serialized_end=450
-  _globals['_INVENTORYSERVICE']._serialized_start=453
-  _globals['_INVENTORYSERVICE']._serialized_end=769
+  _globals['_UPSERTSTOCKREQUEST']._serialized_start=391
+  _globals['_UPSERTSTOCKREQUEST']._serialized_end=476
+  _globals['_HEALTHCHECKREQUEST']._serialized_start=478
+  _globals['_HEALTHCHECKREQUEST']._serialized_end=498
+  _globals['_HEALTHCHECKRESPONSE']._serialized_start=500
+  _globals['_HEALTHCHECKRESPONSE']._serialized_end=537
+  _globals['_INVENTORYSERVICE']._serialized_start=540
+  _globals['_INVENTORYSERVICE']._serialized_end=924
 # @@protoc_insertion_point(module_scope)

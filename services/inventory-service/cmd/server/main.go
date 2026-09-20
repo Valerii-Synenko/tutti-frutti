@@ -67,6 +67,11 @@ func (s *inventoryServer) ReserveStock(_ context.Context, req *pb.ReserveStockRe
 	}, nil
 }
 
+func (s *inventoryServer) UpsertStock(_ context.Context, req *pb.UpsertStockRequest) (*pb.StockInfo, error) {
+	item := s.store.Upsert(req.GetSku(), req.GetQuantityAvailable(), req.GetUnitPriceEur())
+	return toStockInfo(item), nil
+}
+
 func (s *inventoryServer) HealthCheck(_ context.Context, _ *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
 	return &pb.HealthCheckResponse{Status: "ok"}, nil
 }

@@ -1,3 +1,4 @@
+import json
 from contextlib import asynccontextmanager
 
 import httpx
@@ -63,6 +64,25 @@ async def _proxy(method: str, url: str, request: Request, **kwargs) -> Response:
     headers = {**_forward_headers(request), **kwargs.pop("headers", {})}
     resp = await _http_client.request(method, url, headers=headers, **kwargs)
     return Response(content=resp.content, status_code=resp.status_code, media_type="application/json")
+
+
+async def _sync_stock_if_approved(response: Response) -> None:
+    """Registers/updates the fruit's stock in inventory-service whenever
+    catalogue-service reports it as approved — otherwise a seller's newly
+    approved listing (or an admin-created one, which is auto-approved) would
+    show up in the market but could never actually be ordered, since
+    orders-service only knows about SKUs inventory-service has heard of."""
+    if response.status_code not in (200, 201):
+        return
+    try:
+        fruit = json.loads(response.body)
+        if fruit.get("status") != "approved":
+            return
+        await inventory_client.upsert_stock(
+            fruit["slug"], fruit.get("initial_quantity", 0), fruit.get("base_price_hint_eur", 0.0)
+        )
+    except Exception:
+        pass  # best-effort: a hiccup here shouldn't fail the catalogue write itself
 
 
 def _example(value: object) -> dict:
@@ -450,8 +470,10 @@ async def get_fruit(fruit_id: str, request: Request):
 )
 async def create_fruit(request: Request):
     body = await request.body()
-    return await _proxy("POST", f"{settings.catalogue_service_url}/fruits", request, content=body,
-                         headers={"content-type": "application/json"})
+    response = await _proxy("POST", f"{settings.catalogue_service_url}/fruits", request, content=body,
+                             headers={"content-type": "application/json"})
+    await _sync_stock_if_approved(response)
+    return response
 
 
 @app.patch(
@@ -476,8 +498,10 @@ async def create_fruit(request: Request):
 )
 async def update_fruit(fruit_id: str, request: Request):
     body = await request.body()
-    return await _proxy("PATCH", f"{settings.catalogue_service_url}/fruits/{fruit_id}", request, content=body,
-                         headers={"content-type": "application/json"})
+    response = await _proxy("PATCH", f"{settings.catalogue_service_url}/fruits/{fruit_id}", request, content=body,
+                             headers={"content-type": "application/json"})
+    await _sync_stock_if_approved(response)
+    return response
 
 
 @app.delete("/fruits/{fruit_id}", status_code=204, tags=["fruits"])
@@ -498,7 +522,9 @@ async def delete_fruit(fruit_id: str, request: Request):
     },
 )
 async def approve_fruit(fruit_id: str, request: Request):
-    return await _proxy("POST", f"{settings.catalogue_service_url}/fruits/{fruit_id}/approve", request)
+    response = await _proxy("POST", f"{settings.catalogue_service_url}/fruits/{fruit_id}/approve", request)
+    await _sync_stock_if_approved(response)
+    return response
 
 
 @app.post(
@@ -593,6 +619,33 @@ async def list_orders(request: Request):
 )
 async def get_order(order_id: str, request: Request):
     return await _proxy("GET", f"{settings.orders_service_url}/orders/{order_id}", request)
+
+
+_SALES_SUMMARY_EXAMPLE = {
+    "items": [
+        {"fruit_sku": "pink-lady-apple", "quantity_sold": 42, "revenue_eur": 27.3, "orders_count": 18},
+    ],
+    "total_quantity_sold": 42,
+    "total_revenue_eur": 27.3,
+}
+
+
+@app.get(
+    "/sales/summary",
+    tags=["orders"],
+    openapi_extra={
+        "responses": {
+            "200": {
+                "description": "Successful Response",
+                "content": {"application/json": {"examples": _example(_SALES_SUMMARY_EXAMPLE)}},
+            }
+        },
+    },
+)
+async def sales_summary(request: Request):
+    return await _proxy(
+        "GET", f"{settings.orders_service_url}/sales/summary", request, params=dict(request.query_params)
+    )
 
 
 # ---- Comments (proxied to catalogue-service) --------------------------------

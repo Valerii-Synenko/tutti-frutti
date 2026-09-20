@@ -53,6 +53,16 @@ class ReserveStockResponse(_message.Message):
     remaining_quantity: int
     def __init__(self, success: bool = ..., message: _Optional[str] = ..., remaining_quantity: _Optional[int] = ...) -> None: ...
 
+class UpsertStockRequest(_message.Message):
+    __slots__ = ("sku", "quantity_available", "unit_price_eur")
+    SKU_FIELD_NUMBER: _ClassVar[int]
+    QUANTITY_AVAILABLE_FIELD_NUMBER: _ClassVar[int]
+    UNIT_PRICE_EUR_FIELD_NUMBER: _ClassVar[int]
+    sku: str
+    quantity_available: int
+    unit_price_eur: float
+    def __init__(self, sku: _Optional[str] = ..., quantity_available: _Optional[int] = ..., unit_price_eur: _Optional[float] = ...) -> None: ...
+
 class HealthCheckRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

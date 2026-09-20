@@ -115,6 +115,41 @@ async def test_create_fruit_proxies_with_post(client, mock_upstream):
     assert resp.status_code == 201
 
 
+async def test_create_fruit_registers_stock_when_auto_approved(client, mock_upstream, monkeypatch):
+    # Admin-created fruits come back pre-approved from catalogue-service.
+    mock_upstream.post(f"{settings.catalogue_service_url}/fruits").mock(
+        return_value=Response(
+            201,
+            json={
+                "_id": "1", "slug": "kent-mango", "name": "Kent Mango",
+                "status": "approved", "initial_quantity": 25, "base_price_hint_eur": 1.2,
+            },
+        )
+    )
+    upsert = AsyncMock()
+    monkeypatch.setattr(main_module.inventory_client, "upsert_stock", upsert)
+
+    await client.post("/fruits", json={"name": "Kent Mango", "slug": "kent-mango"}, headers={"Authorization": "Bearer t"})
+
+    upsert.assert_awaited_once_with("kent-mango", 25, 1.2)
+
+
+async def test_create_fruit_does_not_register_stock_while_pending(client, mock_upstream, monkeypatch):
+    # A seller's own listing starts pending — it must not become orderable before moderation.
+    mock_upstream.post(f"{settings.catalogue_service_url}/fruits").mock(
+        return_value=Response(
+            201,
+            json={"_id": "1", "slug": "kent-mango", "name": "Kent Mango", "status": "pending", "initial_quantity": 25},
+        )
+    )
+    upsert = AsyncMock()
+    monkeypatch.setattr(main_module.inventory_client, "upsert_stock", upsert)
+
+    await client.post("/fruits", json={"name": "Kent Mango", "slug": "kent-mango"}, headers={"Authorization": "Bearer t"})
+
+    upsert.assert_not_awaited()
+
+
 async def test_update_fruit_proxies_with_patch(client, mock_upstream):
     route = mock_upstream.patch(f"{settings.catalogue_service_url}/fruits/1").mock(
         return_value=Response(200, json={"_id": "1", "slug": "kent-mango", "name": "Updated"})
@@ -123,6 +158,25 @@ async def test_update_fruit_proxies_with_patch(client, mock_upstream):
     assert route.called
     assert route.calls.last.request.method == "PATCH"
     assert resp.status_code == 200
+
+
+async def test_update_fruit_resyncs_stock_when_already_approved(client, mock_upstream, monkeypatch):
+    # A seller restocking (or repricing) an already-live listing should update inventory-service too.
+    mock_upstream.patch(f"{settings.catalogue_service_url}/fruits/1").mock(
+        return_value=Response(
+            200,
+            json={
+                "_id": "1", "slug": "kent-mango", "status": "approved",
+                "initial_quantity": 99, "base_price_hint_eur": 2.0,
+            },
+        )
+    )
+    upsert = AsyncMock()
+    monkeypatch.setattr(main_module.inventory_client, "upsert_stock", upsert)
+
+    await client.patch("/fruits/1", json={"initial_quantity": 99}, headers={"Authorization": "Bearer t"})
+
+    upsert.assert_awaited_once_with("kent-mango", 99, 2.0)
 
 
 async def test_delete_fruit_proxies_with_delete(client, mock_upstream):
@@ -155,6 +209,24 @@ async def test_approve_fruit_proxies_with_post(client, mock_upstream):
     assert resp.status_code == 200
 
 
+async def test_approve_fruit_registers_stock_in_inventory_service(client, mock_upstream, monkeypatch):
+    mock_upstream.post(f"{settings.catalogue_service_url}/fruits/1/approve").mock(
+        return_value=Response(
+            200,
+            json={
+                "_id": "1", "slug": "kent-mango", "status": "approved",
+                "initial_quantity": 10, "base_price_hint_eur": 1.5,
+            },
+        )
+    )
+    upsert = AsyncMock()
+    monkeypatch.setattr(main_module.inventory_client, "upsert_stock", upsert)
+
+    await client.post("/fruits/1/approve", headers={"Authorization": "Bearer t"})
+
+    upsert.assert_awaited_once_with("kent-mango", 10, 1.5)
+
+
 async def test_reject_fruit_proxies_with_post(client, mock_upstream):
     route = mock_upstream.post(f"{settings.catalogue_service_url}/fruits/1/reject").mock(
         return_value=Response(200, json={"_id": "1", "status": "rejected"})
@@ -162,6 +234,18 @@ async def test_reject_fruit_proxies_with_post(client, mock_upstream):
     resp = await client.post("/fruits/1/reject", headers={"Authorization": "Bearer t"})
     assert route.called
     assert resp.status_code == 200
+
+
+async def test_reject_fruit_does_not_register_stock(client, mock_upstream, monkeypatch):
+    mock_upstream.post(f"{settings.catalogue_service_url}/fruits/1/reject").mock(
+        return_value=Response(200, json={"_id": "1", "slug": "kent-mango", "status": "rejected"})
+    )
+    upsert = AsyncMock()
+    monkeypatch.setattr(main_module.inventory_client, "upsert_stock", upsert)
+
+    await client.post("/fruits/1/reject", headers={"Authorization": "Bearer t"})
+
+    upsert.assert_not_awaited()
 
 
 # ---- Orders --------------------------------------------------------------
@@ -189,6 +273,23 @@ async def test_get_order_proxies_to_orders_service(client, mock_upstream):
     resp = await client.get("/orders/o1", headers={"Authorization": "Bearer t"})
     assert route.called
     assert resp.status_code == 200
+
+
+async def test_sales_summary_proxies_query_params_to_orders_service(client, mock_upstream):
+    route = mock_upstream.get(f"{settings.orders_service_url}/sales/summary", params={"skus": "kent-mango"}).mock(
+        return_value=Response(
+            200,
+            json={
+                "items": [{"fruit_sku": "kent-mango", "quantity_sold": 3, "revenue_eur": 3.6, "orders_count": 2}],
+                "total_quantity_sold": 3,
+                "total_revenue_eur": 3.6,
+            },
+        )
+    )
+    resp = await client.get("/sales/summary?skus=kent-mango", headers={"Authorization": "Bearer t"})
+    assert route.called
+    assert resp.status_code == 200
+    assert resp.json()["total_quantity_sold"] == 3
 
 
 # ---- Comments --------------------------------------------------------------

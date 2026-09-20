@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
-import type { Fruit, FruitCreateInput } from '../types';
-import { CheckIcon, PlusIcon, ShieldIcon, StoreIcon, TrashIcon, UserIcon, XIcon } from '../components/icons';
+import type { Fruit, FruitCreateInput, SalesSummary } from '../types';
+import { CalculatorIcon, CheckIcon, PlusIcon, ShieldIcon, StoreIcon, TrashIcon, UserIcon, XIcon } from '../components/icons';
 import './CabinetPage.css';
 
 function slugify(value: string): string {
@@ -24,6 +24,7 @@ const EMPTY_FRUIT_FORM = {
   seasonal_months: '',
   image_url: '',
   base_price_hint_eur: '0',
+  initial_quantity: '0',
 };
 
 function statusLabel(status: Fruit['status']): string {
@@ -66,6 +67,11 @@ export function CabinetPage() {
   const [isLoadingPending, setIsLoadingPending] = useState(false);
   const [moderationError, setModerationError] = useState<string | null>(null);
 
+  // ---- Sales calculator state ----
+  const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
+  const [isLoadingSales, setIsLoadingSales] = useState(false);
+  const [salesError, setSalesError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/login');
@@ -99,6 +105,28 @@ export function CabinetPage() {
 
   useEffect(() => { loadMyFruits(); }, [loadMyFruits]);
   useEffect(() => { loadPendingFruits(); }, [loadPendingFruits]);
+
+  // Sales are tracked in orders-service by fruit slug, with no notion of
+  // "seller" — so we ask it to total up exactly the slugs this seller owns.
+  const myFruitSlugs = useMemo(() => myFruits.map((f) => f.slug).join(','), [myFruits]);
+
+  useEffect(() => {
+    if (!user?.is_seller || user.is_admin || !myFruitSlugs) {
+      setSalesSummary(null);
+      return;
+    }
+    setIsLoadingSales(true);
+    setSalesError(null);
+    api.get<SalesSummary>(`/sales/summary?skus=${encodeURIComponent(myFruitSlugs)}`)
+      .then(setSalesSummary)
+      .catch(() => setSalesError('Could not load your sales figures.'))
+      .finally(() => setIsLoadingSales(false));
+  }, [user?.is_seller, user?.is_admin, myFruitSlugs]);
+
+  const fruitNameBySlug = useMemo(
+    () => new Map(myFruits.map((f) => [f.slug, f.name])),
+    [myFruits]
+  );
 
   async function handleProfileSubmit(e: FormEvent) {
     e.preventDefault();
@@ -147,6 +175,7 @@ export function CabinetPage() {
           .filter((m) => Number.isInteger(m) && m >= 1 && m <= 12),
         image_url: fruitForm.image_url.trim() || null,
         base_price_hint_eur: Number(fruitForm.base_price_hint_eur) || 0,
+        initial_quantity: Math.max(0, parseInt(fruitForm.initial_quantity, 10) || 0),
         attributes: {},
       };
       await api.post<Fruit>('/fruits', payload);
@@ -317,6 +346,17 @@ export function CabinetPage() {
               data-testid="fruit-price-input"
             />
 
+            <label htmlFor="fruit-quantity">Units in stock</label>
+            <input
+              id="fruit-quantity"
+              type="number"
+              min={0}
+              step="1"
+              value={fruitForm.initial_quantity}
+              onChange={(e) => setFruitForm((f) => ({ ...f, initial_quantity: e.target.value }))}
+              data-testid="fruit-quantity-input"
+            />
+
             <label htmlFor="fruit-image">Image URL</label>
             <input
               id="fruit-image"
@@ -382,6 +422,49 @@ export function CabinetPage() {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {user.is_seller && !user.is_admin && (
+        <section className="cabinet-card" data-testid="sales-calculator-section">
+          <h2><CalculatorIcon /> Sales calculator</h2>
+
+          {isLoadingSales && <p data-testid="loading-indicator">Crunching the numbers…</p>}
+          {salesError && <p className="cabinet-form__error" role="alert">{salesError}</p>}
+
+          {!isLoadingSales && !salesError && salesSummary && (
+            salesSummary.items.length === 0 ? (
+              <p data-testid="empty-sales-summary">List a fruit to start tracking sales.</p>
+            ) : (
+              <>
+                <table className="sales-table" data-testid="sales-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Units sold</th>
+                      <th>Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesSummary.items.map((item) => (
+                      <tr key={item.fruit_sku} data-testid="sales-row">
+                        <td>{fruitNameBySlug.get(item.fruit_sku) ?? item.fruit_sku}</td>
+                        <td>{item.quantity_sold}</td>
+                        <td>€{item.revenue_eur.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th>Total</th>
+                      <th data-testid="sales-total-quantity">{salesSummary.total_quantity_sold}</th>
+                      <th data-testid="sales-total-revenue">€{salesSummary.total_revenue_eur.toFixed(2)}</th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </>
+            )
+          )}
         </section>
       )}
 
