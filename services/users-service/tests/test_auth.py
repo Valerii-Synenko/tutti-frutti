@@ -122,3 +122,38 @@ async def test_become_seller_sets_the_seller_claim(client):
 async def test_become_seller_requires_auth(client):
     resp = await client.post("/auth/become-seller")
     assert resp.status_code == 401
+
+
+async def test_logout_requires_auth(client):
+    resp = await client.post("/auth/logout")
+    assert resp.status_code == 401
+
+
+async def test_logout_with_no_body_succeeds(client):
+    tokens = await register_and_login(client)
+    resp = await client.post("/auth/logout", headers={"Authorization": f"Bearer {tokens['access_token']}"})
+    assert resp.status_code == 204
+
+
+async def test_logout_revokes_the_given_refresh_token(client):
+    tokens = await register_and_login(client)
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    logout_resp = await client.post(
+        "/auth/logout", json={"refresh_token": tokens["refresh_token"]}, headers=headers
+    )
+    assert logout_resp.status_code == 204
+
+    refresh_resp = await client.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert refresh_resp.status_code == 401
+
+
+async def test_logout_does_not_affect_other_refresh_tokens(client):
+    tokens_a = await register_and_login(client, email="user-a@example.com")
+    login_b = await register_and_login(client, email="user-b@example.com")
+
+    headers_a = {"Authorization": f"Bearer {tokens_a['access_token']}"}
+    await client.post("/auth/logout", json={"refresh_token": tokens_a["refresh_token"]}, headers=headers_a)
+
+    refresh_resp = await client.post("/auth/refresh", json={"refresh_token": login_b["refresh_token"]})
+    assert refresh_resp.status_code == 200

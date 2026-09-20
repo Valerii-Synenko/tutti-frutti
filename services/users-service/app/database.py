@@ -28,6 +28,17 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
+class RevokedToken(Base):
+    """Refresh tokens revoked via /auth/logout, keyed by their `jti` claim.
+    Access tokens are short-lived (15 min) and are left to expire naturally —
+    only the long-lived refresh token needs explicit revocation on logout."""
+
+    __tablename__ = "revoked_tokens"
+
+    jti: Mapped[str] = mapped_column(String(64), primary_key=True)
+    revoked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session

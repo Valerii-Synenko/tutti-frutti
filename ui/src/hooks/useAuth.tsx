@@ -78,6 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [login]);
 
   const logout = useCallback(() => {
+    const refreshToken = localStorage.getItem('tf_refresh_token');
+    // Best-effort and not awaited — logout must feel instant regardless of
+    // network conditions. This revokes the refresh token server-side so it
+    // can't be replayed even if it leaked; the access token still in
+    // localStorage right now is what authenticates the call.
+    api.post('/auth/logout', refreshToken ? { refresh_token: refreshToken } : undefined).catch(() => {});
+
     localStorage.removeItem('tf_access_token');
     localStorage.removeItem('tf_refresh_token');
     setUser(null);

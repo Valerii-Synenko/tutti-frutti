@@ -101,11 +101,12 @@ async def health():
     return {"status": "ok", "service": "gateway"}
 
 
-# ---- Auth (proxied to users-service) --------------------------------------
+# ---- User (proxied to users-service) --------------------------------------
 
 @app.post(
     "/auth/register",
-    tags=["auth"],
+    tags=["user"],
+    summary="Register",
     status_code=201,
     openapi_extra={
         "requestBody": {
@@ -144,7 +145,8 @@ async def register(request: Request):
 
 @app.post(
     "/auth/login",
-    tags=["auth"],
+    tags=["user"],
+    summary="Login",
     openapi_extra={
         "requestBody": {
             "required": True,
@@ -181,7 +183,8 @@ async def login(request: Request):
 
 @app.post(
     "/auth/refresh",
-    tags=["auth"],
+    tags=["user"],
+    summary="Refresh",
     openapi_extra={
         "requestBody": {
             "required": True,
@@ -214,7 +217,8 @@ async def refresh(request: Request):
 
 @app.get(
     "/auth/me",
-    tags=["auth"],
+    tags=["user"],
+    summary="Get User",
     openapi_extra={
         "responses": {
             "200": {
@@ -238,7 +242,8 @@ async def me(request: Request):
 
 @app.patch(
     "/auth/me",
-    tags=["auth"],
+    tags=["user"],
+    summary="Update User",
     openapi_extra={
         "requestBody": {
             "required": True,
@@ -274,7 +279,8 @@ async def update_me(request: Request):
 
 @app.post(
     "/auth/become-seller",
-    tags=["auth"],
+    tags=["user"],
+    summary="Become Seller",
     openapi_extra={
         "responses": {
             "200": {
@@ -294,6 +300,28 @@ async def update_me(request: Request):
 )
 async def become_seller(request: Request):
     return await _proxy("POST", f"{settings.users_service_url}/auth/become-seller", request)
+
+
+@app.post(
+    "/auth/logout",
+    tags=["user"],
+    summary="Logout",
+    status_code=204,
+    openapi_extra={
+        "requestBody": {
+            "required": False,
+            "content": {
+                "application/json": {
+                    "examples": _example({"refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."})
+                }
+            },
+        },
+    },
+)
+async def logout(request: Request):
+    body = await request.body()
+    return await _proxy("POST", f"{settings.users_service_url}/auth/logout", request, content=body,
+                         headers={"content-type": "application/json"})
 
 
 # ---- Fruits (catalogue-service + live enrichment from inventory-service) ---

@@ -8,9 +8,9 @@ from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import AsyncSessionLocal, User, get_db
+from app.database import AsyncSessionLocal, RevokedToken, User, get_db
 from app.migrate import upgrade_to_head
-from app.schemas import AccessToken, RefreshRequest, TokenPair, UserOut, UserRegister, UserUpdate
+from app.schemas import AccessToken, LogoutRequest, RefreshRequest, TokenPair, UserOut, UserRegister, UserUpdate
 from app.security import (
     create_access_token,
     create_refresh_token,
@@ -81,7 +81,7 @@ async def health():
     return {"status": "ok", "service": "users-service"}
 
 
-@app.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED, tags=["auth"])
+@app.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED, tags=["user"], summary="Register")
 async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(User).where(User.email == payload.email))
     if existing.scalar_one_or_none() is not None:
@@ -98,7 +98,7 @@ async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)):
     return user
 
 
-@app.post("/auth/login", response_model=TokenPair, tags=["auth"])
+@app.post("/auth/login", response_model=TokenPair, tags=["user"], summary="Login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     # OAuth2PasswordRequestForm uses "username" as the field name; we treat it as the email.
     result = await db.execute(select(User).where(User.email == form_data.username))
@@ -112,7 +112,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     )
 
 
-@app.post("/auth/refresh", response_model=AccessToken, tags=["auth"])
+@app.post("/auth/refresh", response_model=AccessToken, tags=["user"], summary="Refresh")
 async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
     try:
         data = decode_token(payload.refresh_token)
@@ -120,6 +120,10 @@ async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=401, detail="Invalid token type")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    revoked = await db.execute(select(RevokedToken).where(RevokedToken.jti == data.get("jti")))
+    if revoked.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=401, detail="Refresh token has been revoked")
 
     try:
         user_id = uuid.UUID(data["sub"])
@@ -136,12 +140,12 @@ async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
-@app.get("/auth/me", response_model=UserOut, tags=["auth"])
+@app.get("/auth/me", response_model=UserOut, tags=["user"], summary="Get User")
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@app.patch("/auth/me", response_model=UserOut, tags=["auth"])
+@app.patch("/auth/me", response_model=UserOut, tags=["user"], summary="Update User")
 async def update_me(
     payload: UserUpdate,
     current_user: User = Depends(get_current_user),
@@ -164,7 +168,7 @@ async def update_me(
     return current_user
 
 
-@app.post("/auth/become-seller", response_model=TokenPair, tags=["auth"])
+@app.post("/auth/become-seller", response_model=TokenPair, tags=["user"], summary="Become Seller")
 async def become_seller(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -182,3 +186,26 @@ async def become_seller(
         ),
         refresh_token=create_refresh_token(str(current_user.id)),
     )
+
+
+@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT, tags=["user"], summary="Logout")
+async def logout(
+    payload: LogoutRequest = LogoutRequest(),
+    _current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revokes the given refresh token so it can no longer be exchanged for a
+    new access token. Requires a currently-valid access token, which is left
+    to expire naturally (15 min) rather than tracked — only the long-lived
+    refresh token needs explicit revocation."""
+    if payload.refresh_token:
+        try:
+            data = decode_token(payload.refresh_token)
+            jti = data.get("jti")
+        except JWTError:
+            jti = None
+        if jti:
+            existing = await db.execute(select(RevokedToken).where(RevokedToken.jti == jti))
+            if existing.scalar_one_or_none() is None:
+                db.add(RevokedToken(jti=jti))
+                await db.commit()

@@ -79,6 +79,23 @@ async def test_become_seller_proxies_to_users_service(client, mock_upstream):
     assert resp.status_code == 200
 
 
+async def test_logout_proxies_with_post(client, mock_upstream):
+    route = mock_upstream.post(f"{settings.users_service_url}/auth/logout").mock(return_value=Response(204))
+    resp = await client.post(
+        "/auth/logout", json={"refresh_token": "r"}, headers={"Authorization": "Bearer t"}
+    )
+    assert route.called
+    assert route.calls.last.request.method == "POST"
+    assert resp.status_code == 204
+
+
+async def test_logout_proxies_with_no_body(client, mock_upstream):
+    route = mock_upstream.post(f"{settings.users_service_url}/auth/logout").mock(return_value=Response(204))
+    resp = await client.post("/auth/logout", headers={"Authorization": "Bearer t"})
+    assert route.called
+    assert resp.status_code == 204
+
+
 # ---- Fruits --------------------------------------------------------------
 
 async def test_list_fruits_enriches_with_stock(client, mock_upstream, monkeypatch):

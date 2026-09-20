@@ -123,6 +123,14 @@ services:
     ports:
       - "4173:80"
 
+  docs:
+    build: ./docs
+    ports:
+      - "7007:7007"
+    volumes:
+      - ./docs:/app
+      - /app/node_modules
+
 volumes:
   users-db-data:
   orders-db-data:

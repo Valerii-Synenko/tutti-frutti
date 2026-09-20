@@ -35,6 +35,12 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = Field(
+        default=None, description="If provided, this refresh token is revoked so it can no longer be used"
+    )
+
+
 class AccessToken(BaseModel):
     access_token: str
     token_type: str = "bearer"
