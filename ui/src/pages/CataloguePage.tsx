@@ -87,7 +87,11 @@ export function CataloguePage() {
   function toggleTag(tag: string) {
     setFilters((prev) => {
       const next = new Set(prev.tags);
-      next.has(tag) ? next.delete(tag) : next.add(tag);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
       return { ...prev, tags: next };
     });
   }
@@ -95,7 +99,11 @@ export function CataloguePage() {
   function toggleOrigin(origin: string) {
     setFilters((prev) => {
       const next = new Set(prev.origins);
-      next.has(origin) ? next.delete(origin) : next.add(origin);
+      if (next.has(origin)) {
+        next.delete(origin);
+      } else {
+        next.add(origin);
+      }
       return { ...prev, origins: next };
     });
   }
