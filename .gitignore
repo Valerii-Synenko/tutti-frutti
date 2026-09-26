@@ -26,6 +26,9 @@ docs/.zudoku/
 .env
 *.env.local
 
+# Local-only compose overrides
+docker-compose.override.yml
+
 # OS / editor
 .DS_Store
 .idea/
