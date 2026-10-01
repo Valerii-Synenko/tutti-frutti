@@ -54,12 +54,40 @@ export interface OrderItem {
   unit_price_eur: number;
 }
 
+export interface OrderContact {
+  full_name: string;
+  phone: string;
+}
+
+export interface ShippingAddress {
+  street: string;
+  city: string;
+  postal_code: string;
+  country: string;
+}
+
+export interface PaymentDetails {
+  cardholder_name: string;
+  card_number: string;
+  expiry: string;
+  cvc: string;
+}
+
+export interface OrderPayment {
+  status: string;
+  card_brand: string;
+  card_last4: string;
+}
+
 export interface Order {
   id: string;
   status: string;
   total_eur: number;
   created_at: string;
   items: OrderItem[];
+  contact: OrderContact | null;
+  shipping_address: ShippingAddress | null;
+  payment: OrderPayment | null;
 }
 
 export interface CartLine {

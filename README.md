@@ -60,6 +60,15 @@ status. Every fruit carries a `seller_id` (`null` for the original house
 catalogue) and a `status` (`pending` / `approved` / `rejected`), on both the
 API and the UI.
 
+## Checkout
+
+`POST /orders` takes the basket plus `contact` (name, phone),
+`shipping_address` and `payment` (card number, `MM/YY` expiry, CVC). Payment
+is simulated: any card that passes the Luhn check and isn't expired is
+charged, except the test card `4000 0000 0000 0002`, which is always declined
+(`402`, nothing is reserved). Only the card brand and last four digits are
+stored and returned — never the full number or CVC.
+
 ## Quick start
 
 ```bash

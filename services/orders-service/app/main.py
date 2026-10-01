@@ -9,7 +9,11 @@ from sqlalchemy.orm import selectinload
 from app.auth import require_auth
 from app.database import Order, OrderItem, get_db, init_models
 from app.inventory_client import inventory_client
-from app.schemas import OrderCreate, OrderOut, SalesSummaryItem, SalesSummaryOut
+from app.schemas import OrderCreate, OrderOut, SalesSummaryItem, SalesSummaryOut, card_brand
+
+# Simulated payment provider: this test card number is always declined, so
+# the failure path can be exercised end-to-end. Every other valid card is charged.
+DECLINED_TEST_CARD = "4000000000000002"
 
 
 @asynccontextmanager
@@ -39,10 +43,26 @@ async def create_order(
     user_id: str = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
+    # Decline before touching stock, so a failed payment never reserves anything.
+    if payload.payment.card_number == DECLINED_TEST_CARD:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Payment declined by the card issuer")
+
     skus = [item.fruit_sku for item in payload.items]
     stock_info = {s.sku: s for s in await inventory_client.batch_get_stock(skus)}
 
-    order = Order(user_id=user_id, status="pending", total_eur=0.0)
+    order = Order(
+        user_id=user_id,
+        status="pending",
+        total_eur=0.0,
+        contact_name=payload.contact.full_name,
+        contact_phone=payload.contact.phone,
+        ship_street=payload.shipping_address.street,
+        ship_city=payload.shipping_address.city,
+        ship_postal_code=payload.shipping_address.postal_code,
+        ship_country=payload.shipping_address.country,
+        card_brand=card_brand(payload.payment.card_number),
+        card_last4=payload.payment.card_number[-4:],
+    )
     total = 0.0
 
     for requested in payload.items:
@@ -77,6 +97,7 @@ async def create_order(
 
     order.total_eur = round(total, 2)
     order.status = "confirmed"
+    order.payment_status = "paid"
 
     db.add(order)
     await db.commit()

@@ -10,6 +10,22 @@ function getAccessToken(): string | null {
   return localStorage.getItem('tf_access_token');
 }
 
+// FastAPI returns a string for HTTPException and a list of
+// {loc, msg} objects for request-validation (422) errors.
+function formatDetail(detail: unknown): string | undefined {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((err: { loc?: unknown[]; msg?: string }) => {
+        const field = err.loc?.[err.loc.length - 1];
+        const msg = (err.msg ?? '').replace(/^Value error, /, '');
+        return typeof field === 'string' ? `${field.replace(/_/g, ' ')}: ${msg}` : msg;
+      })
+      .join('; ');
+  }
+  return undefined;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
@@ -30,7 +46,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     let detail = response.statusText;
     try {
       const body = await response.json();
-      detail = body.detail ?? detail;
+      detail = formatDetail(body.detail) ?? detail;
     } catch {
       /* response had no JSON body */
     }

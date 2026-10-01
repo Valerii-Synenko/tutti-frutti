@@ -24,6 +24,24 @@ def _stock(sku, price=1.0, qty=10, in_stock=True):
     return SimpleNamespace(sku=sku, unit_price_eur=price, quantity_available=qty, in_stock=in_stock)
 
 
+VALID_CARD = "4242 4242 4242 4242"
+
+
+def order_payload(items, **overrides):
+    payload = {
+        "items": items,
+        "contact": {"full_name": "Jane Doe", "phone": "+385 91 234 5678"},
+        "shipping_address": {"street": "Ilica 1", "city": "Zagreb", "postal_code": "10000", "country": "Croatia"},
+        "payment": {"cardholder_name": "Jane Doe", "card_number": VALID_CARD, "expiry": "12/99", "cvc": "123"},
+    }
+    payload.update(overrides)
+    return payload
+
+
+def with_payment(**fields):
+    return {"cardholder_name": "Jane Doe", "card_number": VALID_CARD, "expiry": "12/99", "cvc": "123", **fields}
+
+
 @pytest.fixture(autouse=True)
 def fake_inventory(monkeypatch):
     fake = FakeInventoryClient({
@@ -43,14 +61,14 @@ async def test_health(client):
 
 
 async def test_create_order_requires_auth(client):
-    resp = await client.post("/orders", json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 1}]})
+    resp = await client.post("/orders", json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 1}]))
     assert resp.status_code == 401
 
 
 async def test_create_order_success(client):
     resp = await client.post(
         "/orders",
-        json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 2}]},
+        json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 2}]),
         headers=auth_headers(),
     )
     assert resp.status_code == 201
@@ -58,12 +76,75 @@ async def test_create_order_success(client):
     assert body["status"] == "confirmed"
     assert body["total_eur"] == pytest.approx(1.30)
     assert body["items"][0]["fruit_sku"] == "pink-lady-apple"
+    assert body["contact"] == {"full_name": "Jane Doe", "phone": "+385 91 234 5678"}
+    assert body["shipping_address"]["city"] == "Zagreb"
+    assert body["payment"] == {"status": "paid", "card_brand": "visa", "card_last4": "4242"}
+
+
+async def test_create_order_never_returns_the_full_card_number_or_cvc(client):
+    resp = await client.post("/orders", json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 1}]),
+                             headers=auth_headers())
+    assert resp.status_code == 201
+    assert "4242424242424242" not in resp.text
+    assert "cvc" not in resp.text
+
+
+async def test_create_order_requires_checkout_details(client):
+    resp = await client.post(
+        "/orders", json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 1}]}, headers=auth_headers()
+    )
+    assert resp.status_code == 422
+    missing = {err["loc"][-1] for err in resp.json()["detail"]}
+    assert missing == {"contact", "shipping_address", "payment"}
+
+
+@pytest.mark.parametrize(
+    "payment",
+    [
+        with_payment(card_number="4242 4242 4242 4241"),  # fails Luhn
+        with_payment(card_number="4242"),                  # too short
+        with_payment(expiry="01/20"),                      # expired
+        with_payment(expiry="13/30"),                      # no month 13
+        with_payment(cvc="12"),
+    ],
+)
+async def test_create_order_rejects_invalid_card(client, fake_inventory, payment):
+    resp = await client.post(
+        "/orders",
+        json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 1}], payment=payment),
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 422
+    assert fake_inventory.reserved == []
+
+
+async def test_create_order_rejects_invalid_phone(client):
+    resp = await client.post(
+        "/orders",
+        json=order_payload(
+            [{"fruit_sku": "pink-lady-apple", "quantity": 1}], contact={"full_name": "Jane", "phone": "call me"}
+        ),
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 422
+
+
+async def test_declined_card_returns_402_and_reserves_nothing(client, fake_inventory):
+    resp = await client.post(
+        "/orders",
+        json=order_payload(
+            [{"fruit_sku": "pink-lady-apple", "quantity": 1}], payment=with_payment(card_number="4000 0000 0000 0002")
+        ),
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 402
+    assert fake_inventory.reserved == []
 
 
 async def test_create_order_rejects_out_of_stock_item(client):
     resp = await client.post(
         "/orders",
-        json={"items": [{"fruit_sku": "out-of-stock-fruit", "quantity": 1}]},
+        json=order_payload([{"fruit_sku": "out-of-stock-fruit", "quantity": 1}]),
         headers=auth_headers(),
     )
     assert resp.status_code == 400
@@ -72,7 +153,7 @@ async def test_create_order_rejects_out_of_stock_item(client):
 async def test_create_order_rejects_insufficient_quantity(client):
     resp = await client.post(
         "/orders",
-        json={"items": [{"fruit_sku": "scarce-fruit", "quantity": 5}]},
+        json=order_payload([{"fruit_sku": "scarce-fruit", "quantity": 5}]),
         headers=auth_headers(),
     )
     assert resp.status_code == 400
@@ -82,7 +163,7 @@ async def test_list_orders_only_returns_the_current_users_orders(client):
     headers_a = auth_headers("user-a")
     headers_b = auth_headers("user-b")
 
-    await client.post("/orders", json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 1}]}, headers=headers_a)
+    await client.post("/orders", json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 1}]), headers=headers_a)
 
     resp_a = await client.get("/orders", headers=headers_a)
     resp_b = await client.get("/orders", headers=headers_b)
@@ -101,7 +182,7 @@ async def test_get_order_returns_404_for_another_users_order(client):
     headers_b = auth_headers("user-b")
 
     create_resp = await client.post(
-        "/orders", json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 1}]}, headers=headers_a
+        "/orders", json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 1}]), headers=headers_a
     )
     order_id = create_resp.json()["id"]
 
@@ -127,12 +208,12 @@ async def test_sales_summary_requires_skus(client):
 async def test_sales_summary_aggregates_across_all_buyers(client):
     await client.post(
         "/orders",
-        json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 2}]},
+        json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 2}]),
         headers=auth_headers("buyer-a"),
     )
     await client.post(
         "/orders",
-        json={"items": [{"fruit_sku": "pink-lady-apple", "quantity": 3}]},
+        json=order_payload([{"fruit_sku": "pink-lady-apple", "quantity": 3}]),
         headers=auth_headers("buyer-b"),
     )
 

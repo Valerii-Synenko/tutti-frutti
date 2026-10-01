@@ -606,6 +606,9 @@ _ORDER_EXAMPLE = {
         {"fruit_sku": "pink-lady-apple", "quantity": 3, "unit_price_eur": 0.65},
         {"fruit_sku": "alphonso-mango", "quantity": 1, "unit_price_eur": 1.0},
     ],
+    "contact": {"full_name": "Jane Doe", "phone": "+385 91 234 5678"},
+    "shipping_address": {"street": "Ilica 1", "city": "Zagreb", "postal_code": "10000", "country": "Croatia"},
+    "payment": {"status": "paid", "card_brand": "visa", "card_last4": "4242"},
 }
 
 
@@ -613,6 +616,9 @@ _ORDER_EXAMPLE = {
     "/orders",
     tags=["orders"],
     status_code=201,
+    description="Places and pays for an order. Payment is simulated: any card that passes the Luhn "
+    "check is charged, except the test card `4000 0000 0000 0002`, which is always declined (402). "
+    "Only the card brand and last four digits are stored.",
     openapi_extra={
         "requestBody": {
             "required": True,
@@ -622,7 +628,20 @@ _ORDER_EXAMPLE = {
                         "items": [
                             {"fruit_sku": "pink-lady-apple", "quantity": 3},
                             {"fruit_sku": "alphonso-mango", "quantity": 1},
-                        ]
+                        ],
+                        "contact": {"full_name": "Jane Doe", "phone": "+385 91 234 5678"},
+                        "shipping_address": {
+                            "street": "Ilica 1",
+                            "city": "Zagreb",
+                            "postal_code": "10000",
+                            "country": "Croatia",
+                        },
+                        "payment": {
+                            "cardholder_name": "Jane Doe",
+                            "card_number": "4242 4242 4242 4242",
+                            "expiry": "12/30",
+                            "cvc": "123",
+                        },
                     })
                 }
             },
