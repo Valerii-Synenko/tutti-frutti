@@ -23,7 +23,7 @@ jobs:
         working-directory: services/${{ matrix.service }}
         run: |
           pip install -r requirements.txt
-          pip install ruff mypy
+          pip install ruff==0.16.9 mypy
 
       - name: Lint with ruff
         working-directory: services/${{ matrix.service }}
