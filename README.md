@@ -72,6 +72,7 @@ make seed                     # populates catalogue-service with demo fruit data
 - Gateway (BFF): http://localhost:8080 (Swagger: `/docs`, ReDoc: `/redoc`)
 - Each service also exposes its own `/docs`/`/redoc` on its own port
   (users: 8001, catalogue: 8002, orders: 8003, assistant: 8004)
+- API docs (Zudoku): http://localhost:7007
 - Seeded admin account: `admin@admin.com` / `admin` — register any other
   account to try the buyer/seller flow, or use the cabinet's
   **Become a seller** button.
@@ -142,10 +143,16 @@ will run against real Claude; without it they run against the fallback response.
 
 ## API documentation (Zudoku)
 
+Served by the `docs` container at http://localhost:7007. The specs in
+`docs/openapi/` are generated from the live stack (and gitignored); after
+changing an endpoint, regenerate them and the container picks them up:
+
 ```bash
-make up      # stack must be running
-make docs    # collects OpenAPI specs from all services and starts the Zudoku dev server
+make up                              # stack must be running
+python scripts/collect_openapi.py    # (re)generates docs/openapi/*.json
 ```
+
+`make docs` does the same and also starts a local Zudoku dev server outside Docker.
 
 Each service also ships built-in Swagger UI (`/docs`) and ReDoc (`/redoc`) —
 no extra steps needed.

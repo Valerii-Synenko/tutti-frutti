@@ -3,6 +3,7 @@ version: "3.9"
 services:
   # ---------------------------------------------------------------- Databases
   users-db:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: tuttifrutti
@@ -17,6 +18,7 @@ services:
       retries: 10
 
   orders-db:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: tuttifrutti
@@ -31,6 +33,7 @@ services:
       retries: 10
 
   catalogue-db:
+    restart: unless-stopped
     image: mongo:7
     volumes:
       - catalogue-db-data:/data/db
@@ -42,6 +45,7 @@ services:
 
   # ---------------------------------------------------------------- Services
   users-service:
+    restart: unless-stopped
     build: ./services/users-service
     environment:
       DATABASE_URL: postgresql+asyncpg://tuttifrutti:tuttifrutti@users-db:5432/users
@@ -53,6 +57,7 @@ services:
       - "8001:8000"
 
   catalogue-service:
+    restart: unless-stopped
     build: ./services/catalogue-service
     environment:
       MONGO_URI: mongodb://catalogue-db:27017
@@ -65,6 +70,7 @@ services:
       - "8002:8000"
 
   inventory-service:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: services/inventory-service/Dockerfile
@@ -72,6 +78,7 @@ services:
       - "50051:50051"
 
   orders-service:
+    restart: unless-stopped
     build: ./services/orders-service
     environment:
       DATABASE_URL: postgresql+asyncpg://tuttifrutti:tuttifrutti@orders-db:5432/orders
@@ -86,6 +93,7 @@ services:
       - "8003:8000"
 
   fruit-assistant-service:
+    restart: unless-stopped
     build: ./services/fruit-assistant-service
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -96,6 +104,7 @@ services:
       - "8004:8000"
 
   gateway:
+    restart: unless-stopped
     build: ./services/gateway
     environment:
       USERS_SERVICE_URL: http://users-service:8000
@@ -114,6 +123,7 @@ services:
       - "8080:8000"
 
   ui:
+    restart: unless-stopped
     build:
       context: ./ui
       args:
@@ -124,6 +134,7 @@ services:
       - "4173:80"
 
   docs:
+    restart: unless-stopped
     build: ./docs
     ports:
       - "7007:7007"

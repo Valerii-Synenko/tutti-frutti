@@ -70,6 +70,7 @@ make seed                     # populates catalogue-service with demo fruit data
 - Gateway (BFF): `http://localhost:8080` (Swagger: `/docs`, ReDoc: `/redoc`)
 - Each service also exposes its own `/docs`/`/redoc` on its own port
   (users: 8001, catalogue: 8002, orders: 8003, assistant: 8004)
+- API docs (this site): `http://localhost:7007`
 
 ## Updating this documentation
 
@@ -78,5 +79,7 @@ The JSON specs in `docs/openapi/` are generated from the live stack:
 ```bash
 make up                              # stack must be running
 python scripts/collect_openapi.py    # (re)generates docs/openapi/*.json
-make docs                            # starts the Zudoku dev server
 ```
+
+The `docs` container mounts `docs/` live, so it picks up the regenerated
+specs without a restart.

@@ -130,6 +130,8 @@ async def health():
                             "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                             "email": "jane@example.com",
                             "full_name": "Jane Doe",
+                            "is_admin": False,
+                            "is_seller": False,
                         })
                     }
                 },
@@ -229,6 +231,8 @@ async def refresh(request: Request):
                             "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                             "email": "jane@example.com",
                             "full_name": "Jane Doe",
+                            "is_admin": False,
+                            "is_seller": False,
                         })
                     }
                 },
@@ -326,7 +330,8 @@ async def logout(request: Request):
 
 # ---- Fruits (catalogue-service + live enrichment from inventory-service) ---
 
-_FRUIT_EXAMPLE = {
+# Shape returned by the endpoints that proxy catalogue-service as-is.
+_CATALOGUE_FRUIT_EXAMPLE = {
     "name": "Pink Lady Apple",
     "slug": "pink-lady-apple",
     "description": "Crisp, sweet-tart apple with a rosy blush.",
@@ -336,22 +341,64 @@ _FRUIT_EXAMPLE = {
     "tags": ["crisp", "snack", "lunchbox"],
     "image_url": "/images/pink-lady-apple.svg",
     "base_price_hint_eur": 0.6,
+    "initial_quantity": 240,
     "attributes": {
         "shelf_life_days": 45,
         "storage": "refrigerated",
         "allergen_notes": None,
     },
     "_id": "6a48056f850cca8e87c51014",
+    "seller_id": None,
+    "status": "approved",
+}
+
+# Shape returned by GET /fruits and GET /fruits/{slug}, enriched with live
+# stock/price from inventory-service.
+_FRUIT_EXAMPLE = {
+    **_CATALOGUE_FRUIT_EXAMPLE,
     "live_price_eur": 0.65,
     "quantity_available": 240,
     "in_stock": True,
 }
+
+_SELLER_FRUIT_EXAMPLE = {
+    "name": "Kent Mango",
+    "slug": "kent-mango",
+    "description": "Sweet, fiberless mango with deep orange flesh.",
+    "origin": "Peru",
+    "is_organic": True,
+    "seasonal_months": [11, 12, 1, 2],
+    "tags": ["tropical", "sweet"],
+    "image_url": "/images/kent-mango.svg",
+    "base_price_hint_eur": 1.2,
+    "initial_quantity": 20,
+    "attributes": {"shelf_life_days": 10, "storage": "room-temperature"},
+}
+
+_PENDING_FRUIT_EXAMPLE = {
+    **_SELLER_FRUIT_EXAMPLE,
+    "_id": "6a48056f850cca8e87c51099",
+    "seller_id": "afd76463-3e16-423b-8e0a-8318753e9251",
+    "status": "pending",
+}
+
+_FRUIT_LIST_PARAMETERS = [
+    {"name": "q", "in": "query", "required": False, "schema": {"type": "string"},
+     "description": "Free-text search across name/description/origin/tags (case-insensitive substring)"},
+    {"name": "tag", "in": "query", "required": False, "schema": {"type": "string"}},
+    {"name": "organic_only", "in": "query", "required": False, "schema": {"type": "boolean", "default": False}},
+    {"name": "in_season_month", "in": "query", "required": False,
+     "schema": {"type": "integer", "minimum": 1, "maximum": 12}},
+    {"name": "limit", "in": "query", "required": False, "schema": {"type": "integer", "default": 50, "maximum": 200}},
+    {"name": "offset", "in": "query", "required": False, "schema": {"type": "integer", "default": 0, "minimum": 0}},
+]
 
 
 @app.get(
     "/fruits",
     tags=["fruits"],
     openapi_extra={
+        "parameters": _FRUIT_LIST_PARAMETERS,
         "responses": {
             "200": {
                 "description": "Successful Response",
@@ -392,7 +439,7 @@ async def list_fruits(request: Request):
         "responses": {
             "200": {
                 "description": "Successful Response",
-                "content": {"application/json": {"examples": _example([_FRUIT_EXAMPLE])}},
+                "content": {"application/json": {"examples": _example([_PENDING_FRUIT_EXAMPLE])}},
             }
         },
     },
@@ -408,7 +455,7 @@ async def list_my_fruits(request: Request):
         "responses": {
             "200": {
                 "description": "Successful Response",
-                "content": {"application/json": {"examples": _example([_FRUIT_EXAMPLE])}},
+                "content": {"application/json": {"examples": _example([_PENDING_FRUIT_EXAMPLE])}},
             }
         },
     },
@@ -418,7 +465,7 @@ async def list_pending_fruits(request: Request):
 
 
 @app.get(
-    "/fruits/{fruit_id}",
+    "/fruits/{slug}",
     tags=["fruits"],
     openapi_extra={
         "responses": {
@@ -429,9 +476,9 @@ async def list_pending_fruits(request: Request):
         },
     },
 )
-async def get_fruit(fruit_id: str, request: Request):
+async def get_fruit(slug: str, request: Request):
     assert _http_client is not None
-    resp = await _http_client.get(f"{settings.catalogue_service_url}/fruits/{fruit_id}")
+    resp = await _http_client.get(f"{settings.catalogue_service_url}/fruits/{slug}")
     if resp.status_code != 200:
         raise HTTPException(status_code=resp.status_code, detail="Fruit not found")
 
@@ -457,18 +504,7 @@ async def get_fruit(fruit_id: str, request: Request):
             "required": True,
             "content": {
                 "application/json": {
-                    "examples": _example({
-                        "name": "Kent Mango",
-                        "slug": "kent-mango",
-                        "description": "Sweet, fiberless mango with deep orange flesh.",
-                        "origin": "Peru",
-                        "is_organic": True,
-                        "seasonal_months": [11, 12, 1, 2],
-                        "tags": ["tropical", "sweet"],
-                        "image_url": "/images/kent-mango.svg",
-                        "base_price_hint_eur": 1.2,
-                        "attributes": {"shelf_life_days": 10, "storage": "room-temperature"},
-                    })
+                    "examples": _example(_SELLER_FRUIT_EXAMPLE)
                 }
             },
         },
@@ -477,19 +513,7 @@ async def get_fruit(fruit_id: str, request: Request):
                 "description": "Successful Response",
                 "content": {
                     "application/json": {
-                        "examples": _example({
-                            "name": "Kent Mango",
-                            "slug": "kent-mango",
-                            "description": "Sweet, fiberless mango with deep orange flesh.",
-                            "origin": "Peru",
-                            "is_organic": True,
-                            "seasonal_months": [11, 12, 1, 2],
-                            "tags": ["tropical", "sweet"],
-                            "image_url": "/images/kent-mango.svg",
-                            "base_price_hint_eur": 1.2,
-                            "attributes": {"shelf_life_days": 10, "storage": "room-temperature"},
-                            "_id": "6a48056f850cca8e87c51099",
-                        })
+                        "examples": _example(_PENDING_FRUIT_EXAMPLE)
                     }
                 },
             }
@@ -519,7 +543,7 @@ async def create_fruit(request: Request):
         "responses": {
             "200": {
                 "description": "Successful Response",
-                "content": {"application/json": {"examples": _example(_FRUIT_EXAMPLE)}},
+                "content": {"application/json": {"examples": _example({**_PENDING_FRUIT_EXAMPLE, "base_price_hint_eur": 1.5})}},
             }
         },
     },
@@ -544,7 +568,7 @@ async def delete_fruit(fruit_id: str, request: Request):
         "responses": {
             "200": {
                 "description": "Successful Response",
-                "content": {"application/json": {"examples": _example(_FRUIT_EXAMPLE)}},
+                "content": {"application/json": {"examples": _example({**_PENDING_FRUIT_EXAMPLE, "status": "approved"})}},
             }
         },
     },
@@ -562,7 +586,7 @@ async def approve_fruit(fruit_id: str, request: Request):
         "responses": {
             "200": {
                 "description": "Successful Response",
-                "content": {"application/json": {"examples": _example(_FRUIT_EXAMPLE)}},
+                "content": {"application/json": {"examples": _example({**_PENDING_FRUIT_EXAMPLE, "status": "rejected"})}},
             }
         },
     },
@@ -662,6 +686,10 @@ _SALES_SUMMARY_EXAMPLE = {
     "/sales/summary",
     tags=["orders"],
     openapi_extra={
+        "parameters": [
+            {"name": "skus", "in": "query", "required": True, "schema": {"type": "string"},
+             "description": "Comma-separated fruit slugs, e.g. 'pink-lady-apple,alphonso-mango'"},
+        ],
         "responses": {
             "200": {
                 "description": "Successful Response",
@@ -684,6 +712,7 @@ _COMMENT_EXAMPLE = {
     "author": "Maria",
     "body": "So crisp and juicy, my favourite snack apple!",
     "created_at": "2026-08-28T14:03:00Z",
+    "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
 }
 
 
@@ -733,7 +762,7 @@ async def add_comment(slug: str, request: Request):
                         content=body, headers={"content-type": "application/json"})
 
 
-@app.delete("/fruits/{slug}/comments/{comment_id}", tags=["comments"])
+@app.delete("/fruits/{slug}/comments/{comment_id}", status_code=204, tags=["comments"])
 async def delete_comment(slug: str, comment_id: str, request: Request):
     return await _proxy("DELETE", f"{settings.catalogue_service_url}/fruits/{slug}/comments/{comment_id}", request)
 
